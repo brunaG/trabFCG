@@ -19,7 +19,8 @@ uniform mat4 view;
 uniform mat4 projection;
 
 // Identificador que define qual objeto está sendo desenhado no momento
-#define SPHERE 0
+//#define SPHERE 0
+#define SKY_BOX  0
 #define BUNNY  1
 #define PLANE  2
 uniform int object_id;
@@ -32,6 +33,7 @@ uniform vec4 bbox_max;
 uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
+uniform sampler2D TextureImage3;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec3 color;
@@ -59,44 +61,52 @@ void main()
     vec4 n = normalize(normal);
 
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
-    vec4 l = normalize(vec4(1.0,1.0,0.0,0.0));
+  //  vec4 l = normalize(vec4(1.0,1.0,0.0,0.0));
+
+    vec4 light_pos = vec4(0.0f,10.0f,0.0f,1.0f);
+
+    // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
+    vec4 l = normalize(light_pos - p);
 
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
+
+    // Vetor que define o sentido da reflexão especular ideal.
+    vec4 r = -l + 2*n*dot(n,l);
+
+    // Parâmetros que definem as propriedades espectrais da superfície
+    vec3 Kd; // Refletância difusa que será obtida da imagem de textura
+    vec3 Ks; // Refletância especular
+    vec3 Ka; // Refletância ambiente
+    float q; // Expoente especular para o modelo de iluminação de Phong
 
     // Coordenadas de textura U e V
     float U = 0.0;
     float V = 0.0;
 
-    if ( object_id == SPHERE )
+    if ( object_id == SKY_BOX )
     {
-        // PREENCHA AQUI as coordenadas de textura da esfera, computadas com
-        // projeção esférica EM COORDENADAS DO MODELO. Utilize como referência
-        // o slides 134-150 do documento Aula_20_Mapeamento_de_Texturas.pdf.
-        // A esfera que define a projeção deve estar centrada na posição
-        // "bbox_center" definida abaixo.
 
-        // Você deve utilizar:
-        //   função 'length( )' : comprimento Euclidiano de um vetor
-        //   função 'atan( , )' : arcotangente. Veja https://en.wikipedia.org/wiki/Atan2.
-        //   função 'asin( )'   : seno inverso.
-        //   constante M_PI
-        //   variável position_model
+        vec4 p_lin = camera_position + ((position_world - camera_position)/length(position_world - camera_position));
+        vec4 coord_vector = (p_lin - camera_position);
+        float theta = atan(coord_vector.x,coord_vector.z);
+        float phi = asin(coord_vector.y);
 
-        vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
-        vec4 vector_p = position_model-bbox_center;
+        U = (theta + M_PI)/(2*M_PI);
+        V = (phi + M_PI_2)/M_PI;
 
-        float px = vector_p.x;
-        float py = vector_p.y;
-        float pz = vector_p.z;
+        //Kd = texture(TextureImage3, vec2(U,V)).rgb;
 
-        float ro = length(vector_p); 
-        float theta = atan(px, pz);
-        float phi = asin(py / ro);
+        // Propriedades espectrais da superfície
+        Kd = vec3(0.01,0.02,0.03); // Refletância difusa
+        Ks = vec3(0.8,0.7,0.7); // Refletância especular
+        Ka = vec3(0.3,0.2,0.2); // Refletância ambiente
+        q = 15.0;    //Expoente para o modelo de Phong
 
-        U = (theta + M_PI) / ( 2 * M_PI); //U = theta normalizado [-pi, pi] -> [0,1]
-        V = (phi + M_PI_2) / M_PI;  //V = phi normalizado [-pi/2 , pi/2] -> [0,1]
+        //inverte a normal da esfera, para que ela esteja "virada para dentro"
+        n = -n;
     }
+
     else if ( object_id == BUNNY )
     {
         // PREENCHA AQUI as coordenadas de textura do coelho, computadas com
@@ -130,13 +140,45 @@ void main()
     // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
     vec3 Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
     vec3 Kd1 = texture(TextureImage1, vec2(U,V)).rgb;
+    vec3 Kd2 = texture(TextureImage3, vec2(U,V)).rgb;
+
+    // Espectro da fonte de iluminação
+    vec3 light_spectrum = vec3(1.0,1.0,1.0);
+
+    // Espectro da luz ambiente
+    vec3 ambient_light_spectrum = vec3(0.6,0.6,0.6);
 
     // Equação de Iluminação
     float lambert = max(0,dot(n,l));
 
-    color = Kd0 * (pow(lambert, 1) + 0.01) + Kd1 * (1 - (pow(lambert, 0.2)) + 0.01); 
+    // Termo para iluminacao de Phong
+    float phong_specular_term = pow(float(max(0.0f,dot(r,v))),q);
+
+    //textura e iluminação para cada objetos
+    if ( object_id == SKY_BOX )
+    {
+        color = Kd2 * light_spectrum * lambert //Termo difuso (Lambert)
+                + Ka * ambient_light_spectrum   //Fator Ambiente
+                + Ks * light_spectrum * phong_specular_term;
+    }
+
+    else if ( object_id == BUNNY )
+    {
+        color = Kd1 * light_spectrum * lambert;
+    }
+
+    else if ( object_id == PLANE )
+    {
+        color = Kd1 * light_spectrum * lambert;
+    }
+
+  //  color = Kd0 * (pow(lambert, 1) + 0.01) + Kd1 * (1 - (pow(lambert, 0.2)) + 0.01);
 
     // Cor final com correção gamma, considerando monitor sRGB.
     // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
     color = pow(color, vec3(1.0,1.0,1.0)/2.2);
-} 
+
+    // Cor final com correção gamma, considerando monitor sRGB.
+// Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
+color = pow(color, vec3(1.0,1.0,1.0)/2.2);
+}
