@@ -172,13 +172,12 @@ void main()
         color = Kd1 * light_spectrum * lambert;
     }
 
-  //  color = Kd0 * (pow(lambert, 1) + 0.01) + Kd1 * (1 - (pow(lambert, 0.2)) + 0.01);
-
+    //  color = Kd0 * (pow(lambert, 1) + 0.01) + Kd1 * (1 - (pow(lambert, 0.2)) + 0.01);
     // Cor final com correção gamma, considerando monitor sRGB.
     // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
     color = pow(color, vec3(1.0,1.0,1.0)/2.2);
 
     // Cor final com correção gamma, considerando monitor sRGB.
-// Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
-color = pow(color, vec3(1.0,1.0,1.0)/2.2);
+    // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
+    color = pow(color, vec3(1.0,1.0,1.0)/2.2);
 }
