@@ -1052,6 +1052,9 @@ void CursorPosCallback(GLFWwindow *window, double xpos, double ypos)
     // parâmetros que definem a posição da câmera dentro da cena virtual.
     // Assim, temos que o usuário consegue controlar a câmera.
 
+    if (!gameIsRunning)
+        return;
+
     if (g_LeftMouseButtonPressed)
     {
         // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
