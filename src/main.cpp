@@ -87,13 +87,15 @@ struct Position
     int z;
 };
 
-struct Player
+struct positionObject
 {
-    int score = 0;
-    int lives = 3;
-    Position position;
-    ObjModel *model;
+    int id;                     //ID do objeto
+    std::string name;           //Nome do objeto
+    glm::vec3 scale;            //Escala do objeto
+    glm::vec4 position_world;   //Posição do objeto na cena
+    glm::vec3 rotation;         //Rotação do objeto na cena (x,y e z)
 };
+
 
 struct Character
 {
@@ -154,6 +156,8 @@ void startGame();
 // estes são acessados.
 std::map<std::string, SceneObject> g_VirtualScene;
 
+std::vector<positionObject> g_positionObject;
+
 // Pilha que guardará as matrizes de modelagem.
 std::stack<glm::mat4> g_MatrixStack;
 
@@ -181,7 +185,7 @@ float g_CameraDistance = 3.5f; // Distância da câmera para a origem
 
 // Variável que controla o tipo de projeção utilizada: perspectiva ou ortográfica.
 bool g_UsePerspectiveProjection = true;
-bool g_UseFreeCamera = false;
+bool playerView = true; // camera em primeira pessoa
 
 // Variável que controla se o texto informativo será mostrado na tela.
 bool g_ShowInfoText = true;
@@ -189,6 +193,7 @@ bool g_ShowInfoText = true;
 bool gameIsRunning = false;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
+
 GLuint vertex_shader_id;
 GLuint fragment_shader_id;
 GLuint program_id = 0;
@@ -201,6 +206,29 @@ GLint bbox_max_uniform;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
+
+// ------------------------------------ AQUI - ESTRUTURAS DO JOGO------------------------------------
+
+struct Player
+{
+    int score;
+    int lives;
+    glm::vec4 position_world;
+    ObjModel *model;
+    
+    Player(){
+         score = 0;
+         lives = 3;
+         position_world = glm::vec4(0.0f,3.0f,15.0f,1.0f);
+         g_CameraPhi         = 0.0f;
+         g_CameraTheta       = 0.0f;
+    }
+    
+};
+
+Player* player = new Player();
+
+//------------------------------------ AQUI - ESTRUTURAS DO JOGO ------------------------------------
 
 int main(int argc, char *argv[])
 {
@@ -340,18 +368,39 @@ int main(int argc, char *argv[])
         // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
         // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
         // e ScrollCallback().
-        float r = g_CameraDistance;
+        /*float r = g_CameraDistance;
         float y = r * sin(g_CameraPhi);
         float z = r * cos(g_CameraPhi) * cos(g_CameraTheta);
-        float x = r * cos(g_CameraPhi) * sin(g_CameraTheta);
+        float x = r * cos(g_CameraPhi) * sin(g_CameraTheta);*/
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
+        glm::vec4 camera_position_c; // = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
+        glm::vec4 camera_lookat_l; // = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        glm::vec4 camera_view_vector; // = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
         glm::vec4 camera_up_vector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
+        // BLOCO DA CAMERA E PROJEÇÃO
+        
+        if (!playerView){
+            float r = g_CameraDistance;
+            float y = r * sin(g_CameraPhi) + player->position_world.y;
+            float z = r * cos(g_CameraPhi) * cos(g_CameraTheta) + player->position_world.z;
+            float x = r * cos(g_CameraPhi) * sin(g_CameraTheta) + player->position_world.x;
+            
+            // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
+            // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
+            glm::vec4 camera_position_c = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
+            glm::vec4 camera_lookat_l = player->position_world; // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+            glm::vec4 camera_view_vector =  camera_lookat_l - camera_position_c;
+
+        }
+        else{
+            camera_position_c  = player->position_world;
+            camera_view_vector = (Matrix_Rotate_Y(g_CameraTheta)*Matrix_Rotate_X(-g_CameraPhi))*glm::vec4(0.0f,0.0f,-1.0f,0.0f);
+                    
+        }
+        
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
         glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
@@ -362,7 +411,7 @@ int main(int argc, char *argv[])
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.1f; // Posição do "near plane"
-        float farplane = -10.0f; // Posição do "far plane"
+        float farplane = -100.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
         {
@@ -370,6 +419,7 @@ int main(int argc, char *argv[])
             // Para definição do field of view (FOV), veja slides 205-215 do documento Aula_09_Projecoes.pdf.
             float field_of_view = 3.141592 / 3.0f;
             projection = Matrix_Perspective(field_of_view, g_ScreenRatio, nearplane, farplane);
+            //glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
         }
         else
         {
@@ -392,6 +442,8 @@ int main(int argc, char *argv[])
         // efetivamente aplicadas em todos os pontos.
         glUniformMatrix4fv(view_uniform, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
+        
+        //fi
 
 #define SKY_BOX 0
 #define BUNNY 1
@@ -405,7 +457,10 @@ int main(int argc, char *argv[])
         DrawVirtualObject("sphere");
 
         // Desenhamos o modelo do coelho
-        model = Matrix_Translate(1.0f, 0.0f, 0.0f) * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f);
+        model = (player->position_world.x,player->position_world.y - 4.0f,player->position_world.z)
+                * Matrix_Rotate_X(g_AngleX
+                + (float)glfwGetTime()
+                * 0.1f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, BUNNY);
         DrawVirtualObject("bunny");
@@ -756,7 +811,7 @@ void BuildTrianglesAndAddToVirtualScene(ObjModel *model)
 
         g_VirtualScene[model->shapes[shape].name] = theobject;
     }
-
+    
     GLuint VBO_model_coefficients_id;
     glGenBuffers(1, &VBO_model_coefficients_id);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_model_coefficients_id);
@@ -1146,7 +1201,7 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
 
         if (key == GLFW_KEY_C && action == GLFW_PRESS)
         {
-            g_UseFreeCamera = !g_UseFreeCamera;
+            playerView = !playerView;
         }
 
         if (key == GLFW_KEY_P && action == GLFW_PRESS)
@@ -1191,7 +1246,7 @@ void TextRendering_ShowFooterInfo(GLFWwindow *window)
     std::string projection = g_UsePerspectiveProjection ? "Perspective" : "Orthographic";
     TextRendering_PrintString(window, projection, 1.0f - 13 * charwidth, -1.0f + 2 * lineheight / 10, 1.0f);
 
-    std::string camera = g_UseFreeCamera ? "Free Camera" : "Look-at Camera";
+    std::string camera = playerView ? "Free Camera" : "Look-at Camera";
     TextRendering_PrintString(window, camera, -5.0f * charwidth, -1.0f + 2 * lineheight / 10, 1.0f);
 }
 

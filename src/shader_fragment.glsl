@@ -98,10 +98,10 @@ void main()
         //Kd = texture(TextureImage3, vec2(U,V)).rgb;
 
         // Propriedades espectrais da superfície
-        Kd = vec3(0.01,0.02,0.03); // Refletância difusa
+        Kd = vec3(1.0,0.0,0.03); // Refletância difusa
         Ks = vec3(0.8,0.7,0.7); // Refletância especular
         Ka = vec3(0.3,0.2,0.2); // Refletância ambiente
-        q = 15.0;    //Expoente para o modelo de Phong
+        q = 10.0;    //Expoente para o modelo de Phong
 
         //inverte a normal da esfera, para que ela esteja "virada para dentro"
         n = -n;
@@ -157,9 +157,11 @@ void main()
     //textura e iluminação para cada objetos
     if ( object_id == SKY_BOX )
     {
-        color = Kd2 * light_spectrum * lambert //Termo difuso (Lambert)
+      /*  color = Kd2 * light_spectrum * lambert //Termo difuso (Lambert)
                 + Ka * ambient_light_spectrum   //Fator Ambiente
-                + Ks * light_spectrum * phong_specular_term;
+                + Ks * light_spectrum * phong_specular_term; */
+        
+        color = Kd2 * light_spectrum * lambert;
     }
 
     else if ( object_id == BUNNY )
