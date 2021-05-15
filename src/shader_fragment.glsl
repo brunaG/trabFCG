@@ -23,6 +23,10 @@ uniform mat4 projection;
 #define SKY_BOX  0
 #define PLAYER  1
 #define PLANE  2
+#define SCAREMAN 3
+#define PLANE2  4
+#define PLANE3  5
+
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -35,6 +39,8 @@ uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
 uniform sampler2D TextureImage3;
 uniform sampler2D TextureImage4;
+uniform sampler2D TextureImage5;
+uniform sampler2D TextureImage6;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec3 color;
@@ -137,11 +143,38 @@ void main()
         U = texcoords.x;
         V = texcoords.y;
     }
+    
+    else if ( object_id == PLANE2 )
+    {
+        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
+        U = texcoords.x;
+        V = texcoords.y;
+    }
+    
+    else if ( object_id == PLANE3 )
+    {
+        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
+        U = texcoords.x;
+        V = texcoords.y;
+    }
+    
+    
+    else if ( object_id == SCAREMAN )
+    {
+        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
+        U = texcoords.x;
+        V = texcoords.y;
+    }
+
 
     // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
     vec3 Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
-    vec3 Kd1 = texture(TextureImage4, vec2(U,V)).rgb;
-    vec3 Kd2 = texture(TextureImage3, vec2(U,V)).rgb;
+    vec3 Kd1 = texture(TextureImage1, vec2(U,V)).rgb; //nao usa pra nada
+    vec3 Kd2 = texture(TextureImage2, vec2(U,V)).rgb;
+    vec3 Kd3 = texture(TextureImage3, vec2(U,V)).rgb; //SKYBOX
+    vec3 Kd4 = texture(TextureImage4, vec2(U,V)).rgb; //THEFARM
+    vec3 Kd5 = texture(TextureImage5, vec2(U,V)).rgb; //menu2
+    vec3 Kd6 = texture(TextureImage5, vec2(U,V)).rgb; //menu3
 
     // Espectro da fonte de iluminação
     vec3 light_spectrum = vec3(1.0,1.0,1.0);
@@ -162,17 +195,30 @@ void main()
                 + Ka * ambient_light_spectrum   //Fator Ambiente
                 + Ks * light_spectrum * phong_specular_term; */
         
-        color = Kd2 * light_spectrum * lambert;
+        color = Kd3 * light_spectrum * lambert;
     }
 
     else if ( object_id == PLAYER )
     {
         color = Kd0 * light_spectrum * lambert;
     }
+    else if ( object_id == PLANE2 )
+    {
+        color = Kd5 * light_spectrum * lambert;
+    }
+    else if ( object_id == PLANE3 )
+    {
+        color = Kd6 * light_spectrum * lambert;
+    }
+    
+    else if ( object_id == SCAREMAN )
+    {
+        color = Kd0 * light_spectrum * lambert;
+    }
 
     else if ( object_id == PLANE )
     {
-        color = Kd1 * ambient_light_spectrum;
+        color = Kd4 * ambient_light_spectrum;
     }
 
     //  color = Kd0 * (pow(lambert, 1) + 0.01) + Kd1 * (1 - (pow(lambert, 0.2)) + 0.01);

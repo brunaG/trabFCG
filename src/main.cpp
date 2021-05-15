@@ -5,16 +5,10 @@
 //    INF01047 Fundamentos de Computação Gráfica
 //               Prof. Eduardo Gastal
 //
-//                   LABORATÓRIO 5
+//                   TRABALHO FINAL - FARM RUN
+//                           Bruna e Taiane
 //
 
-// Arquivos "headers" padrões de C podem ser incluídos em um
-// programa C++, sendo necessário somente adicionar o caractere
-// "c" antes de seu nome, e remover o sufixo ".h". Exemplo:
-//    #include <stdio.h> // Em C
-//  vira
-//    #include <cstdio> // Em C++
-//
 #pragma GCC diagnostic ignored "-Wmissing-braces"
 #define STB_IMAGE_IMPLEMENTATION
 #include <cmath>
@@ -51,6 +45,16 @@
 #include "matrices.h"
 
 #define WIN_SCORE 10
+#define SKY_BOX 0
+#define PLAYER 1
+#define PLANE 2
+#define SCAREMAN 3
+#define PLANE2 4
+#define PLANE3 5
+
+
+// ------------------------------------ ESTRUTURAS DO JOGO------------------------------------
+
 struct SceneObject
 {
     std::string name;              // Nome do objeto
@@ -110,6 +114,25 @@ struct Character
     ObjModel *model;
 };
 
+struct Player
+{
+    int score;
+    int lives;
+    glm::vec4 position_world;
+    ObjModel *model;
+    
+    Player(){
+         score = 0;
+         lives = 3;
+         position_world = glm::vec4(0.0f, 3.0f, 15.0f, 1.0f);
+    }
+};
+
+Player *player = new Player();
+
+// ------------------------------------ ESTRUTURAS DO JOGO------------------------------------
+
+// ------------------------------------ FUNÇÕES USADAS -----------------------------------
 // Declaração de funções utilizadas para pilha de matrizes de modelagem.
 void PushMatrix(glm::mat4 M);
 void PopMatrix(glm::mat4 &M);
@@ -154,7 +177,10 @@ void MouseButtonCallback(GLFWwindow *window, int button, int action, int mods);
 void CursorPosCallback(GLFWwindow *window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow *window, double xoffset, double yoffset);
 
-// Funcões da lógica do jogo
+// ------------------------------------ FUNÇÕES USADAS -----------------------------------
+
+// ------------------------------------ FUNÇÕES DA LOGICA DO JOGO ------------------------------------
+
 void startGame();
 void endGame();
 void movePlayer();
@@ -162,7 +188,7 @@ bool checkColision();
 int calcScore();
 float getDeltaT();
 
-// Abaixo definimos variáveis globais utilizadas em várias funções do código.
+// ------------------------------------ VARIÁVEIS GLOBAIS ------------------------------------
 
 // A cena virtual é uma lista de objetos nomeados, guardados em um dicionário
 // (map).  Veja dentro da função BuildTrianglesAndAddToVirtualScene() como que são incluídos
@@ -210,6 +236,7 @@ int menuJogo = 0; // 0: Menu - 1: jogo - 2: você ganhou - 3: você perdeu
 bool pressedA = false,
      pressedS = false;
 
+
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 
 GLuint vertex_shader_id;
@@ -225,29 +252,9 @@ GLint bbox_max_uniform;
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
-// ------------------------------------ AQUI - ESTRUTURAS DO JOGO------------------------------------
+// ------------------------------------ VARIÁVEIS GLOBAIS ------------------------------------
 
-struct Player
-{
-    int score;
-    int lives;
-    glm::vec4 position_world;
-    ObjModel *model;
-
-    Player()
-    {
-        score = 0;
-        lives = 3;
-        position_world = glm::vec4(0.0f, 3.0f, 15.0f, 1.0f);
-        g_CameraPhi = 0.0f;
-        g_CameraTheta = 0.0f;
-    }
-};
-
-Player *player = new Player();
-
-//------------------------------------ AQUI - ESTRUTURAS DO JOGO ------------------------------------
-
+// ------------------------------------  INICIO MAIN  ------------------------------------
 int main(int argc, char *argv[])
 {
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -322,16 +329,22 @@ int main(int argc, char *argv[])
     //
     LoadShadersFromFiles();
 
-    // ----------------------- TEXTURAS -----------------------
+    // ----------------------- CARREGA TEXTURAS -----------------------
     LoadTextureImage("../../data/texpleyer.jpeg");                   // TextureImage0
     LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
     LoadTextureImage("../../data/menu_background.jpg");              //TextureImage2
     LoadTextureImage("../../data/skybox1.jpeg");                     //TextureImage3
     LoadTextureImage("../../data/THEFARM.png");                      //TextureImage4
+    LoadTextureImage("../../data/thefarm2.gif");                      //TextureImage5
+    LoadTextureImage("../../data/thefarm3.gif");                      //TextureImage6
 
     ObjModel spheremodel("../../data/sphere.obj");
     ComputeNormals(&spheremodel);
     BuildTrianglesAndAddToVirtualScene(&spheremodel);
+    
+    ObjModel scaremanmodel("../../data/scareman.obj");
+    ComputeNormals(&scaremanmodel);
+    BuildTrianglesAndAddToVirtualScene(&scaremanmodel);
 
     ObjModel playermodel("../../data/player.obj");
     ComputeNormals(&playermodel);
@@ -340,7 +353,17 @@ int main(int argc, char *argv[])
     ObjModel planemodel("../../data/plane.obj");
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
+    
+    ObjModel plane2model("../../data/plane.obj");
+    ComputeNormals(&plane2model);
+    BuildTrianglesAndAddToVirtualScene(&plane2model);
+    
+    ObjModel plane3model("../../data/plane.obj");
+    ComputeNormals(&plane3model);
+    BuildTrianglesAndAddToVirtualScene(&plane3model);
 
+    // ----------------------- CARREGA TEXTURAS -----------------------
+    
     if (argc > 1)
     {
         ObjModel model(argv[1]);
@@ -382,33 +405,41 @@ int main(int argc, char *argv[])
         // os shaders de vértice e fragmentos).
         glUseProgram(program_id);
 
+
+        // Computamos a posição da câmera utilizando coordenadas esféricas.  As
+        // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
+        // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
+        // e ScrollCallback().
+
+
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c;                                    // = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l;                                      // = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector;                                   // = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
+        glm::vec4 camera_position_c;// = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
+        glm::vec4 camera_lookat_l;//  = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        glm::vec4 camera_view_vector; // = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
         glm::vec4 camera_up_vector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
-        movePlayer();
-        // BLOCO DA CAMERA E PROJEÇÃO
-
-        if (!playerView)
-        {
+        // BLOCO DA CAMERA E PROJEÇÃO----------------
+        
+        if (!playerView){
             float r = g_CameraDistance;
-            float y = r * sin(g_CameraPhi) + player->position_world.y;
+            float y = r * sin(g_CameraPhi)                      + player->position_world.y;
             float z = r * cos(g_CameraPhi) * cos(g_CameraTheta) + player->position_world.z;
             float x = r * cos(g_CameraPhi) * sin(g_CameraTheta) + player->position_world.x;
 
             // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
             // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-            glm::vec4 camera_position_c = glm::vec4(x, y, z, 1.0f); // Ponto "c", centro da câmera
-            glm::vec4 camera_lookat_l = player->position_world;     // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-            glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c;
+
+            camera_position_c = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
+            camera_lookat_l = player->position_world; // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+            camera_view_vector =  camera_lookat_l - camera_position_c;
+
         }
-        else
-        {
-            camera_position_c = player->position_world;
-            camera_view_vector = (Matrix_Rotate_Y(g_CameraTheta) * Matrix_Rotate_X(-g_CameraPhi)) * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+        else{ // terceira pessoa
+            camera_position_c  = player->position_world;
+            camera_view_vector = (Matrix_Rotate_Y(g_CameraTheta)*Matrix_Rotate_X(-g_CameraPhi))*glm::vec4(0.0f,0.0f,-1.0f,0.0f);
+                    
+
         }
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
@@ -423,29 +454,12 @@ int main(int argc, char *argv[])
         float nearplane = -0.1f;  // Posição do "near plane"
         float farplane = -100.0f; // Posição do "far plane"
 
-        if (g_UsePerspectiveProjection)
-        {
             // Projeção Perspectiva.
             // Para definição do field of view (FOV), veja slides 205-215 do documento Aula_09_Projecoes.pdf.
             float field_of_view = 3.141592 / 3.0f;
             projection = Matrix_Perspective(field_of_view, g_ScreenRatio, nearplane, farplane);
-            //glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
-        }
-        else
-        {
-            // Projeção Ortográfica.
-            // Para definição dos valores l, r, b, t ("left", "right", "bottom", "top"),
-            // PARA PROJEÇÃO ORTOGRÁFICA veja slides 219-224 do documento Aula_09_Projecoes.pdf.
-            // Para simular um "zoom" ortográfico, computamos o valor de "t"
-            // utilizando a variável g_CameraDistance.
-            float t = 1.5f * g_CameraDistance / 2.5f;
-            float b = -t;
-            float r = t * g_ScreenRatio;
-            float l = -r;
-            projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
-        }
+            glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
 
-        glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
 
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
         // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
@@ -457,14 +471,16 @@ int main(int argc, char *argv[])
 
         // ------------------ objetos da cena e menu ------------------
 
-#define SKY_BOX 0
-#define PLAYER 1
-#define PLANE 2
+
+        
+    
 
         if (menuJogo == 0)
         {
             // plano do tamanho da janela.
-            model = Matrix_Translate(0.0f, 1.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
+            
+            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
+
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE);
             DrawVirtualObject("plane");
@@ -476,9 +492,38 @@ int main(int argc, char *argv[])
                 TextRendering_ShowEnterGameMessage(window);
             }
         }
-        else
-        {
-            //   MODELO DA SKYBOX (SPHERE)
+        else if (menuJogo == 2){
+            // plano do tamanho da janela.
+            
+            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
+
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, PLANE2);
+            DrawVirtualObject("plane2");
+        }
+        else if (menuJogo == 3){
+            // plano do tamanho da janela.
+            
+            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
+
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, PLANE3);
+            DrawVirtualObject("plane3");
+        }
+        
+        else{
+        
+            //carrega skybox
+            //carrega objetos fixos
+                //decoração cenrário
+                //obstaculos parados
+            //carrega que se movimentam
+                //carrega player
+                //carrega inimigos
+            
+            
+        //   MODELO DA SKYBOX (SPHERE)
+    
 
             model = Matrix_Translate(camera_position_c.x, camera_position_c.y, camera_position_c.z) * Matrix_Scale(farplane, farplane, farplane);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
@@ -494,7 +539,7 @@ int main(int argc, char *argv[])
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLAYER);
             DrawVirtualObject("player");
-        }
+       
         // ------------------ objetos da cena ------------------
 
         // Imprimimos na tela informação sobre o número de quadros renderizados
@@ -507,7 +552,9 @@ int main(int argc, char *argv[])
             calcScore();
             endGame();
         }
-
+            
+        }
+        
         // O framebuffer onde OpenGL executa as operações de renderização não
         // é o mesmo que está sendo mostrado para o usuário, caso contrário
         // seria possível ver artefatos conhecidos como "screen tearing". A
@@ -528,6 +575,10 @@ int main(int argc, char *argv[])
     // Fim do programa
     return 0;
 }
+
+// ------------------------------------  FINAL MAIN  ------------------------------------
+
+// ------------------------------------  FUNÇÕES DO JOGO  ------------------------------------
 
 // Função que carrega uma imagem para ser utilizada como textura
 void LoadTextureImage(const char *filename)
@@ -663,6 +714,8 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(program_id, "TextureImage2"), 2);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage3"), 3);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage4"), 4);
+    glUniform1i(glGetUniformLocation(program_id, "TextureImage5"), 5);
+    glUniform1i(glGetUniformLocation(program_id, "TextureImage6"), 6);
     glUseProgram(0);
 }
 
@@ -1193,7 +1246,7 @@ void ScrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
     // Atualizamos a distância da câmera para a origem utilizando a
     // movimentação da "rodinha", simulando um ZOOM.
-    g_CameraDistance -= 0.1f * yoffset;
+    g_CameraDistance -= 0.5f * yoffset;
 
     // Uma câmera look-at nunca pode estar exatamente "em cima" do ponto para
     // onde ela está olhando, pois isto gera problemas de divisão por zero na
@@ -1221,6 +1274,7 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
 
     if (gameIsRunning)
     {
+        
         if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
         {
             g_AngleX = 0.0f;
@@ -1235,7 +1289,7 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
 
         if (key == GLFW_KEY_P && action == GLFW_PRESS)
         {
-            g_UsePerspectiveProjection = true;
+            playerView = !playerView;
         }
 
         if (key == GLFW_KEY_O && action == GLFW_PRESS)
@@ -1572,5 +1626,8 @@ float getDeltaT()
     return seconds - old_seconds;
 }
 
-// set makeprg=cd\ ..\ &&\ make\ run\ >/dev/null
-// vim: set spell spelllang=pt_br :
+// ------------------------------------  FUNÇÕES DO JOGO  ------------------------------------
+
+
+// ------------------------------------       FINALMENTE O FIM        -----------------------------------
+// ------------------------------------  MEU DEUS QUE CÓDIGO ENORME  ------------------------------------
