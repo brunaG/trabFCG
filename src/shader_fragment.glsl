@@ -21,7 +21,7 @@ uniform mat4 projection;
 // Identificador que define qual objeto está sendo desenhado no momento
 //#define SPHERE 0
 #define SKY_BOX  0
-#define BUNNY  1
+#define PLAYER  1
 #define PLANE  2
 uniform int object_id;
 
@@ -34,6 +34,7 @@ uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
 uniform sampler2D TextureImage3;
+uniform sampler2D TextureImage4;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec3 color;
@@ -107,7 +108,7 @@ void main()
         n = -n;
     }
 
-    else if ( object_id == BUNNY )
+    else if ( object_id == PLAYER )
     {
         // PREENCHA AQUI as coordenadas de textura do coelho, computadas com
         // projeção planar XY em COORDENADAS DO MODELO. Utilize como referência
@@ -139,7 +140,7 @@ void main()
 
     // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
     vec3 Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
-    vec3 Kd1 = texture(TextureImage1, vec2(U,V)).rgb;
+    vec3 Kd1 = texture(TextureImage4, vec2(U,V)).rgb;
     vec3 Kd2 = texture(TextureImage3, vec2(U,V)).rgb;
 
     // Espectro da fonte de iluminação
@@ -164,14 +165,14 @@ void main()
         color = Kd2 * light_spectrum * lambert;
     }
 
-    else if ( object_id == BUNNY )
+    else if ( object_id == PLAYER )
     {
-        color = Kd1 * light_spectrum * lambert;
+        color = Kd0 * light_spectrum * lambert;
     }
 
     else if ( object_id == PLANE )
     {
-        color = Kd1 * light_spectrum * lambert;
+        color = Kd1 * ambient_light_spectrum;
     }
 
     //  color = Kd0 * (pow(lambert, 1) + 0.01) + Kd1 * (1 - (pow(lambert, 0.2)) + 0.01);

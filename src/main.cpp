@@ -15,6 +15,7 @@
 //  vira
 //    #include <cstdio> // Em C++
 //
+#pragma GCC diagnostic ignored "-Wmissing-braces"
 #define STB_IMAGE_IMPLEMENTATION
 #include <cmath>
 #include <cstdio>
@@ -37,6 +38,11 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/ext/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale
+#include <glm/ext/matrix_clip_space.hpp> // glm::perspective
+#include <glm/ext/scalar_constants.hpp> // glm::pi
+#include <glm/vec3.hpp> // glm::vec3
+
 // Headers da biblioteca para carregar modelos obj
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
@@ -191,6 +197,7 @@ bool playerView = true; // camera em primeira pessoa
 bool g_ShowInfoText = true;
 
 bool gameIsRunning = false;
+int menuJogo = 0;  // 0: Menu - 1: jogo - 2: você ganhou - 3: você perdeu
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 
@@ -259,7 +266,9 @@ int main(int argc, char *argv[])
     // Criamos uma janela do sistema operacional, com 800 colunas e 600 linhas
     // de pixels, e com título "INF01047 ...".
     GLFWwindow *window;
-    window = glfwCreateWindow(800, 600, "INF01047 - Trabalho Final", NULL, NULL);
+    window = glfwCreateWindow(800, 800, "INF01047 - Trabalho Final", NULL, NULL);
+    
+
     if (!window)
     {
         glfwTerminate();
@@ -288,7 +297,7 @@ int main(int argc, char *argv[])
     // redimensionada, por consequência alterando o tamanho do "framebuffer"
     // (região de memória onde são armazenados os pixels da imagem).
     glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
-    FramebufferSizeCallback(window, 800, 600); // Forçamos a chamada do callback acima, para definir g_ScreenRatio.
+    FramebufferSizeCallback(window, 800, 800); // Forçamos a chamada do callback acima, para definir g_ScreenRatio.
 
     // Imprimimos no terminal informações sobre a GPU do sistema
     const GLubyte *vendor = glGetString(GL_VENDOR);
@@ -303,19 +312,20 @@ int main(int argc, char *argv[])
     //
     LoadShadersFromFiles();
 
-    // Carregamos duas imagens para serem utilizadas como textura
-    LoadTextureImage("../../data/tc-earth_daymap_surface.jpg");      // TextureImage0
+   // ----------------------- TEXTURAS -----------------------
+    LoadTextureImage("../../data/texpleyer.jpeg");      // TextureImage0
     LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
     LoadTextureImage("../../data/menu_background.jpg");              //TextureImage2
     LoadTextureImage("../../data/skybox1.jpeg");                     //TextureImage3
+    LoadTextureImage("../../data/THEFARM.png");                      //TextureImage4
 
     ObjModel spheremodel("../../data/sphere.obj");
     ComputeNormals(&spheremodel);
     BuildTrianglesAndAddToVirtualScene(&spheremodel);
 
-    ObjModel bunnymodel("../../data/bunny.obj");
-    ComputeNormals(&bunnymodel);
-    BuildTrianglesAndAddToVirtualScene(&bunnymodel);
+    ObjModel playermodel("../../data/player.obj");
+    ComputeNormals(&playermodel);
+    BuildTrianglesAndAddToVirtualScene(&playermodel);
 
     ObjModel planemodel("../../data/plane.obj");
     ComputeNormals(&planemodel);
@@ -445,39 +455,62 @@ int main(int argc, char *argv[])
         
         //fi
 
+        
+// ------------------ objetos da cena e menu ------------------
+        
 #define SKY_BOX 0
-#define BUNNY 1
+#define PLAYER 1
 #define PLANE 2
 
+        
+        if (menuJogo == 0){
+            
+            // plano do tamanho da janela.
+            model = Matrix_Translate(0.0f, 1.0f, 0.0f)
+                    * Matrix_Scale(12.0f, 12.0f, 12.0f)
+                    *Matrix_Rotate_X(1.6)
+                    * Matrix_Rotate_Z(0.0);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, PLANE);
+            DrawVirtualObject("plane");
+            
+            TextRendering_ShowFooterInfo(window);
+
+            if (!gameIsRunning)
+            {
+                TextRendering_ShowEnterGameMessage(window);
+            }
+
+            
+        }
+        
+        else{
+        
         //   MODELO DA SKYBOX (SPHERE)
-        int sk = SKY_BOX;
+       
         model = Matrix_Translate(camera_position_c.x, camera_position_c.y, camera_position_c.z) * Matrix_Scale(farplane, farplane, farplane);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(object_id_uniform, sk);
+        glUniform1i(object_id_uniform, SKY_BOX);
         DrawVirtualObject("sphere");
+            
+        // OBJETOS FIXOS NA CENA
+            
+            
 
-        // Desenhamos o modelo do coelho
-        model = (player->position_world.x,player->position_world.y - 4.0f,player->position_world.z)
-                * Matrix_Rotate_X(g_AngleX
-                + (float)glfwGetTime()
-                * 0.1f);
+        // Desenhamos o player
+        model = Matrix_Translate(0.0f, 0.0f, 0.0f)
+                * Matrix_Scale(1.0f, 1.0f, 1.0f);
+                                //*Matrix_Rotate_Y(g_CameraTheta);
+                                //*Matrix_Scale(1.0f,1.0f,1.0f);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(object_id_uniform, BUNNY);
-        DrawVirtualObject("bunny");
+        glUniform1i(object_id_uniform, PLAYER);
+        DrawVirtualObject("player");
+            
+        
 
-        // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f, -1.1f, 0.0f);
-        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(object_id_uniform, PLANE);
-        DrawVirtualObject("plane");
-
-        TextRendering_ShowFooterInfo(window);
-
-        if (!gameIsRunning)
-        {
-            TextRendering_ShowEnterGameMessage(window);
         }
-
+// ------------------ objetos da cena ------------------
+        
         // Imprimimos na tela informação sobre o número de quadros renderizados
         // por segundo (frames per second).
         TextRendering_ShowFramesPerSecond(window);
@@ -636,6 +669,7 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(program_id, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage2"), 2);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage3"), 3);
+    glUniform1i(glGetUniformLocation(program_id, "TextureImage4"), 4);
     glUseProgram(0);
 }
 
@@ -1479,6 +1513,7 @@ void PrintObjModelInfo(ObjModel *model)
 
 void startGame()
 {
+    menuJogo = 1;
     gameIsRunning = true;
 }
 

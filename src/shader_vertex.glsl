@@ -1,5 +1,6 @@
 #version 330 core
 
+
 // Atributos de v�rtice recebidos como entrada ("in") pelo Vertex Shader.
 // Veja a fun��o BuildTrianglesAndAddToVirtualScene() em "main.cpp".
 layout (location = 0) in vec4 model_coefficients;
@@ -19,6 +20,8 @@ out vec4 position_world;
 out vec4 position_model;
 out vec4 normal;
 out vec2 texcoords;
+
+
 
 void main()
 {
