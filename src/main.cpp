@@ -38,10 +38,10 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/ext/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale
+#include <glm/ext/matrix_transform.hpp>  // glm::translate, glm::rotate, glm::scale
 #include <glm/ext/matrix_clip_space.hpp> // glm::perspective
-#include <glm/ext/scalar_constants.hpp> // glm::pi
-#include <glm/vec3.hpp> // glm::vec3
+#include <glm/ext/scalar_constants.hpp>  // glm::pi
+#include <glm/vec3.hpp>                  // glm::vec3
 
 // Headers da biblioteca para carregar modelos obj
 #include <tiny_obj_loader.h>
@@ -49,6 +49,8 @@
 // Headers locais, definidos na pasta "include/"
 #include "utils.h"
 #include "matrices.h"
+
+#define WIN_SCORE 10
 struct SceneObject
 {
     std::string name;              // Nome do objeto
@@ -95,13 +97,12 @@ struct Position
 
 struct positionObject
 {
-    int id;                     //ID do objeto
-    std::string name;           //Nome do objeto
-    glm::vec3 scale;            //Escala do objeto
-    glm::vec4 position_world;   //Posição do objeto na cena
-    glm::vec3 rotation;         //Rotação do objeto na cena (x,y e z)
+    int id;                   //ID do objeto
+    std::string name;         //Nome do objeto
+    glm::vec3 scale;          //Escala do objeto
+    glm::vec4 position_world; //Posição do objeto na cena
+    glm::vec3 rotation;       //Rotação do objeto na cena (x,y e z)
 };
-
 
 struct Character
 {
@@ -152,7 +153,14 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode
 void MouseButtonCallback(GLFWwindow *window, int button, int action, int mods);
 void CursorPosCallback(GLFWwindow *window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow *window, double xoffset, double yoffset);
+
+// Funcões da lógica do jogo
 void startGame();
+void endGame();
+void movePlayer();
+bool checkColision();
+int calcScore();
+float getDeltaT();
 
 // Abaixo definimos variáveis globais utilizadas em várias funções do código.
 
@@ -197,7 +205,10 @@ bool playerView = true; // camera em primeira pessoa
 bool g_ShowInfoText = true;
 
 bool gameIsRunning = false;
-int menuJogo = 0;  // 0: Menu - 1: jogo - 2: você ganhou - 3: você perdeu
+int menuJogo = 0; // 0: Menu - 1: jogo - 2: você ganhou - 3: você perdeu
+
+bool pressedA = false,
+     pressedS = false;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 
@@ -222,18 +233,18 @@ struct Player
     int lives;
     glm::vec4 position_world;
     ObjModel *model;
-    
-    Player(){
-         score = 0;
-         lives = 3;
-         position_world = glm::vec4(0.0f,3.0f,15.0f,1.0f);
-         g_CameraPhi         = 0.0f;
-         g_CameraTheta       = 0.0f;
+
+    Player()
+    {
+        score = 0;
+        lives = 3;
+        position_world = glm::vec4(0.0f, 3.0f, 15.0f, 1.0f);
+        g_CameraPhi = 0.0f;
+        g_CameraTheta = 0.0f;
     }
-    
 };
 
-Player* player = new Player();
+Player *player = new Player();
 
 //------------------------------------ AQUI - ESTRUTURAS DO JOGO ------------------------------------
 
@@ -267,7 +278,6 @@ int main(int argc, char *argv[])
     // de pixels, e com título "INF01047 ...".
     GLFWwindow *window;
     window = glfwCreateWindow(800, 800, "INF01047 - Trabalho Final", NULL, NULL);
-    
 
     if (!window)
     {
@@ -312,8 +322,8 @@ int main(int argc, char *argv[])
     //
     LoadShadersFromFiles();
 
-   // ----------------------- TEXTURAS -----------------------
-    LoadTextureImage("../../data/texpleyer.jpeg");      // TextureImage0
+    // ----------------------- TEXTURAS -----------------------
+    LoadTextureImage("../../data/texpleyer.jpeg");                   // TextureImage0
     LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
     LoadTextureImage("../../data/menu_background.jpg");              //TextureImage2
     LoadTextureImage("../../data/skybox1.jpeg");                     //TextureImage3
@@ -365,52 +375,42 @@ int main(int argc, char *argv[])
         //
         //           R     G     B     A
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-
         // "Pintamos" todos os pixels do framebuffer com a cor definida acima,
         // e também resetamos todos os pixels do Z-buffer (depth buffer).
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         // Pedimos para a GPU utilizar o programa de GPU criado acima (contendo
         // os shaders de vértice e fragmentos).
         glUseProgram(program_id);
 
-        // Computamos a posição da câmera utilizando coordenadas esféricas.  As
-        // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
-        // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
-        // e ScrollCallback().
-        /*float r = g_CameraDistance;
-        float y = r * sin(g_CameraPhi);
-        float z = r * cos(g_CameraPhi) * cos(g_CameraTheta);
-        float x = r * cos(g_CameraPhi) * sin(g_CameraTheta);*/
-
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c; // = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l; // = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector; // = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
+        glm::vec4 camera_position_c;                                    // = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
+        glm::vec4 camera_lookat_l;                                      // = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        glm::vec4 camera_view_vector;                                   // = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
         glm::vec4 camera_up_vector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
+        movePlayer();
         // BLOCO DA CAMERA E PROJEÇÃO
-        
-        if (!playerView){
+
+        if (!playerView)
+        {
             float r = g_CameraDistance;
             float y = r * sin(g_CameraPhi) + player->position_world.y;
             float z = r * cos(g_CameraPhi) * cos(g_CameraTheta) + player->position_world.z;
             float x = r * cos(g_CameraPhi) * sin(g_CameraTheta) + player->position_world.x;
-            
+
             // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
             // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-            glm::vec4 camera_position_c = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
-            glm::vec4 camera_lookat_l = player->position_world; // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-            glm::vec4 camera_view_vector =  camera_lookat_l - camera_position_c;
+            glm::vec4 camera_position_c = glm::vec4(x, y, z, 1.0f); // Ponto "c", centro da câmera
+            glm::vec4 camera_lookat_l = player->position_world;     // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+            glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c;
+        }
+        else
+        {
+            camera_position_c = player->position_world;
+            camera_view_vector = (Matrix_Rotate_Y(g_CameraTheta) * Matrix_Rotate_X(-g_CameraPhi)) * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+        }
 
-        }
-        else{
-            camera_position_c  = player->position_world;
-            camera_view_vector = (Matrix_Rotate_Y(g_CameraTheta)*Matrix_Rotate_X(-g_CameraPhi))*glm::vec4(0.0f,0.0f,-1.0f,0.0f);
-                    
-        }
-        
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
         glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
@@ -420,7 +420,7 @@ int main(int argc, char *argv[])
 
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
-        float nearplane = -0.1f; // Posição do "near plane"
+        float nearplane = -0.1f;  // Posição do "near plane"
         float farplane = -100.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
@@ -452,68 +452,61 @@ int main(int argc, char *argv[])
         // efetivamente aplicadas em todos os pontos.
         glUniformMatrix4fv(view_uniform, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
-        
+
         //fi
 
-        
-// ------------------ objetos da cena e menu ------------------
-        
+        // ------------------ objetos da cena e menu ------------------
+
 #define SKY_BOX 0
 #define PLAYER 1
 #define PLANE 2
 
-        
-        if (menuJogo == 0){
-            
+        if (menuJogo == 0)
+        {
             // plano do tamanho da janela.
-            model = Matrix_Translate(0.0f, 1.0f, 0.0f)
-                    * Matrix_Scale(12.0f, 12.0f, 12.0f)
-                    *Matrix_Rotate_X(1.6)
-                    * Matrix_Rotate_Z(0.0);
+            model = Matrix_Translate(0.0f, 1.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE);
             DrawVirtualObject("plane");
-            
+
             TextRendering_ShowFooterInfo(window);
 
             if (!gameIsRunning)
             {
                 TextRendering_ShowEnterGameMessage(window);
             }
-
-            
         }
-        
-        else{
-        
-        //   MODELO DA SKYBOX (SPHERE)
-       
-        model = Matrix_Translate(camera_position_c.x, camera_position_c.y, camera_position_c.z) * Matrix_Scale(farplane, farplane, farplane);
-        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(object_id_uniform, SKY_BOX);
-        DrawVirtualObject("sphere");
-            
-        // OBJETOS FIXOS NA CENA
-            
-            
+        else
+        {
+            //   MODELO DA SKYBOX (SPHERE)
 
-        // Desenhamos o player
-        model = Matrix_Translate(0.0f, 0.0f, 0.0f)
-                * Matrix_Scale(1.0f, 1.0f, 1.0f);
-                                //*Matrix_Rotate_Y(g_CameraTheta);
-                                //*Matrix_Scale(1.0f,1.0f,1.0f);
-        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-        glUniform1i(object_id_uniform, PLAYER);
-        DrawVirtualObject("player");
-            
-        
+            model = Matrix_Translate(camera_position_c.x, camera_position_c.y, camera_position_c.z) * Matrix_Scale(farplane, farplane, farplane);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, SKY_BOX);
+            DrawVirtualObject("sphere");
 
+            // OBJETOS FIXOS NA CENA
+
+            // Desenhamos o player
+            model = Matrix_Translate(0.0f, 0.0f, 0.0f) * Matrix_Scale(1.0f, 1.0f, 1.0f);
+            //*Matrix_Rotate_Y(g_CameraTheta);
+            //*Matrix_Scale(1.0f,1.0f,1.0f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, PLAYER);
+            DrawVirtualObject("player");
         }
-// ------------------ objetos da cena ------------------
-        
+        // ------------------ objetos da cena ------------------
+
         // Imprimimos na tela informação sobre o número de quadros renderizados
         // por segundo (frames per second).
         TextRendering_ShowFramesPerSecond(window);
+
+        if (gameIsRunning)
+        {
+            checkColision();
+            calcScore();
+            endGame();
+        }
 
         // O framebuffer onde OpenGL executa as operações de renderização não
         // é o mesmo que está sendo mostrado para o usuário, caso contrário
@@ -845,7 +838,7 @@ void BuildTrianglesAndAddToVirtualScene(ObjModel *model)
 
         g_VirtualScene[model->shapes[shape].name] = theobject;
     }
-    
+
     GLuint VBO_model_coefficients_id;
     glGenBuffers(1, &VBO_model_coefficients_id);
     glBindBuffer(GL_ARRAY_BUFFER, VBO_model_coefficients_id);
@@ -1216,6 +1209,8 @@ void ScrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 // tecla do teclado. Veja http://www.glfw.org/docs/latest/input_guide.html#input_key
 void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
 {
+    bool pressed = !(action == GLFW_RELEASE);
+
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
 
@@ -1258,6 +1253,16 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
             LoadShadersFromFiles();
             fprintf(stdout, "Shaders recarregados!\n");
             fflush(stdout);
+        }
+
+        if (key == GLFW_KEY_S)
+        {
+            pressedS = pressed;
+        }
+
+        if (key == GLFW_KEY_A)
+        {
+            pressedA = pressed;
         }
     }
 }
@@ -1515,6 +1520,56 @@ void startGame()
 {
     menuJogo = 1;
     gameIsRunning = true;
+}
+
+void endGame()
+{
+    if (player->score == WIN_SCORE)
+    {
+        menuJogo = 2;
+    }
+    else if (player->lives == 0)
+    {
+        menuJogo = 3;
+    }
+}
+
+void movePlayer()
+{
+    float step = 0.05f;
+
+    if (pressedS)
+    {
+        player->position_world.x -= step;
+    }
+
+    if (pressedA)
+    {
+        player->position_world.x += step;
+    }
+}
+
+bool checkColision()
+{
+    // TODO: check colision
+    return false;
+}
+
+int calcScore()
+{
+    int delta = (int)getDeltaT();
+    if (delta % 60 == 0)
+    {
+        player->score = delta / 60;
+    }
+}
+
+float getDeltaT()
+{
+    static float old_seconds = (float)glfwGetTime();
+    float seconds = (float)glfwGetTime();
+
+    return seconds - old_seconds;
 }
 
 // set makeprg=cd\ ..\ &&\ make\ run\ >/dev/null
