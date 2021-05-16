@@ -52,7 +52,6 @@
 #define PLANE2 4
 #define PLANE3 5
 
-
 // ------------------------------------ ESTRUTURAS DO JOGO------------------------------------
 
 struct SceneObject
@@ -107,11 +106,11 @@ struct ObjFixo
     glm::vec3 scale;          //Escala do objeto
     glm::vec3 rotation;       //Rotação do objeto na cena (x,y e z)
 
-    ObjFixo(){
+    ObjFixo()
+    {
         position_world = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     }
 };
-
 
 struct Character
 {
@@ -125,11 +124,12 @@ struct Player
     int lives;
     glm::vec4 position_world;
     ObjModel *model;
-    
-    Player(){
-         score = 0;
-         lives = 3;
-         position_world = glm::vec4(0.0f, 3.0f, 15.0f, 1.0f);
+
+    Player()
+    {
+        score = 0;
+        lives = 3;
+        position_world = glm::vec4(0.0f, 3.0f, 15.0f, 1.0f);
     }
 };
 
@@ -243,7 +243,6 @@ int menuJogo = 0; // 0: Menu - 1: jogo - 2: você ganhou - 3: você perdeu
 bool pressedA = false,
      pressedS = false;
 
-
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 
 GLuint vertex_shader_id;
@@ -343,8 +342,8 @@ int main(int argc, char *argv[])
     LoadTextureImage("../../data/menu_background.jpg");              //TextureImage2
     LoadTextureImage("../../data/skybox1.jpeg");                     //TextureImage3
     LoadTextureImage("../../data/THEFARM.png");                      //TextureImage4
-    LoadTextureImage("../../data/thefarm2.gif");                      //TextureImage5
-    LoadTextureImage("../../data/thefarm3.gif");                      //TextureImage6
+    LoadTextureImage("../../data/thefarm2.gif");                     //TextureImage5
+    LoadTextureImage("../../data/thefarm3.gif");                     //TextureImage6
 
     // ----------------------- CARREGA TEXTURAS -----------------------
 
@@ -417,37 +416,37 @@ int main(int argc, char *argv[])
         // os shaders de vértice e fragmentos).
         glUseProgram(program_id);
 
-
         // Computamos a posição da câmera utilizando coordenadas esféricas.  As
         // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
         // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
         // e ScrollCallback().
 
-
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c;// = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l;//  = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector; // = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
+        glm::vec4 camera_position_c;                                    // = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
+        glm::vec4 camera_lookat_l;                                      //  = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        glm::vec4 camera_view_vector;                                   // = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
         glm::vec4 camera_up_vector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
         // BLOCO DA CAMERA E PROJEÇÃO----------------
-        if (!playerView){
+        if (!playerView)
+        {
             float r = g_CameraDistance;
-            float y = r * sin(g_CameraPhi)                      + player->position_world.y;
+            float y = r * sin(g_CameraPhi) + player->position_world.y;
             float z = r * cos(g_CameraPhi) * cos(g_CameraTheta) + player->position_world.z;
             float x = r * cos(g_CameraPhi) * sin(g_CameraTheta) + player->position_world.x;
 
             // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
             // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
 
-            camera_position_c = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
-            camera_lookat_l = player->position_world; // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-            camera_view_vector =  camera_lookat_l - camera_position_c;
+            camera_position_c = glm::vec4(x, y, z, 1.0f); // Ponto "c", centro da câmera
+            camera_lookat_l = player->position_world;     // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+            camera_view_vector = camera_lookat_l - camera_position_c;
         }
-        else{ // terceira pessoa
-            camera_position_c  = player->position_world;
-            camera_view_vector = (Matrix_Rotate_Y(g_CameraTheta)*Matrix_Rotate_X(-g_CameraPhi))*glm::vec4(0.0f,0.0f,-1.0f,0.0f);
+        else
+        { // terceira pessoa
+            camera_position_c = player->position_world;
+            camera_view_vector = (Matrix_Rotate_Y(g_CameraTheta) * Matrix_Rotate_X(-g_CameraPhi)) * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
         }
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -466,7 +465,6 @@ int main(int argc, char *argv[])
         projection = Matrix_Perspective(field_of_view, g_ScreenRatio, nearplane, farplane);
         glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
 
-
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
         // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
         // efetivamente aplicadas em todos os pontos.
@@ -479,27 +477,27 @@ int main(int argc, char *argv[])
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE);
             DrawVirtualObject("plane");
-            TextRendering_ShowFooterInfo(window);
 
-            if (!gameIsRunning)
-            {
-                TextRendering_ShowEnterGameMessage(window);
-            }
+            TextRendering_ShowFooterInfo(window);
+            TextRendering_ShowEnterGameMessage(window);
         }
-        else if (menuJogo == 2){
+        else if (menuJogo == 2)
+        {
             model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE2);
             DrawVirtualObject("plane2");
         }
-        else if (menuJogo == 3){
+        else if (menuJogo == 3)
+        {
             model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE3);
             DrawVirtualObject("plane3");
         }
 
-        else{
+        else
+        {
 
             model = Matrix_Translate(camera_position_c.x, camera_position_c.y, camera_position_c.z) * Matrix_Scale(farplane, farplane, farplane);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
@@ -507,7 +505,7 @@ int main(int argc, char *argv[])
             DrawVirtualObject("sphere");
 
             // Desenhamos o player
-            model = Matrix_Translate(0.0f, -10.0f, 0.0f) * Matrix_Scale(0.6f, 0.6f, 0.6f)*Matrix_Rotate_Y(1.6);
+            model = Matrix_Translate(0.0f, -10.0f, 0.0f) * Matrix_Scale(0.6f, 0.6f, 0.6f) * Matrix_Rotate_Y(1.6);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLAYER);
             DrawVirtualObject("player");
@@ -520,14 +518,14 @@ int main(int argc, char *argv[])
 
             if (gameIsRunning)
             {
+                movePlayer();
                 checkColision();
                 calcScore();
                 endGame();
             }
-
         }
 
-      glfwSwapBuffers(window);
+        glfwSwapBuffers(window);
 
         glfwPollEvents();
     }
@@ -1234,7 +1232,7 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
 
     if (gameIsRunning)
     {
-        
+
         if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
         {
             g_AngleX = 0.0f;
@@ -1587,7 +1585,6 @@ float getDeltaT()
 }
 
 // ------------------------------------  FUNÇÕES DO JOGO  ------------------------------------
-
 
 // ------------------------------------       FINALMENTE O FIM        -----------------------------------
 // ------------------------------------  MEU DEUS QUE CÓDIGO ENORME  ------------------------------------
