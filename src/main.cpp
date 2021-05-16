@@ -99,14 +99,19 @@ struct Position
     int z;
 };
 
-struct positionObject
+struct ObjFixo
 {
     int id;                   //ID do objeto
     std::string name;         //Nome do objeto
-    glm::vec3 scale;          //Escala do objeto
     glm::vec4 position_world; //Posição do objeto na cena
+    glm::vec3 scale;          //Escala do objeto
     glm::vec3 rotation;       //Rotação do objeto na cena (x,y e z)
+
+    ObjFixo(){
+        position_world = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    }
 };
+
 
 struct Character
 {
@@ -128,7 +133,9 @@ struct Player
     }
 };
 
+//
 Player *player = new Player();
+ObjFixo *planeMenu = new ObjFixo();
 
 // ------------------------------------ ESTRUTURAS DO JOGO------------------------------------
 
@@ -196,7 +203,7 @@ float getDeltaT();
 // estes são acessados.
 std::map<std::string, SceneObject> g_VirtualScene;
 
-std::vector<positionObject> g_positionObject;
+//std::vector<ObjFixo> g_positionObject;
 
 // Pilha que guardará as matrizes de modelagem.
 std::stack<glm::mat4> g_MatrixStack;
@@ -221,7 +228,7 @@ bool g_MiddleMouseButtonPressed = false; // Análogo para botão do meio do mous
 // renderização.
 float g_CameraTheta = 0.0f;    // Ângulo no plano ZX em relação ao eixo Z
 float g_CameraPhi = 0.0f;      // Ângulo em relação ao eixo Y
-float g_CameraDistance = 3.5f; // Distância da câmera para a origem
+float g_CameraDistance = 5.5f; // Distância da câmera para a origem
 
 // Variável que controla o tipo de projeção utilizada: perspectiva ou ortográfica.
 bool g_UsePerspectiveProjection = true;
@@ -330,6 +337,7 @@ int main(int argc, char *argv[])
     LoadShadersFromFiles();
 
     // ----------------------- CARREGA TEXTURAS -----------------------
+
     LoadTextureImage("../../data/texpleyer.jpeg");                   // TextureImage0
     LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
     LoadTextureImage("../../data/menu_background.jpg");              //TextureImage2
@@ -338,10 +346,14 @@ int main(int argc, char *argv[])
     LoadTextureImage("../../data/thefarm2.gif");                      //TextureImage5
     LoadTextureImage("../../data/thefarm3.gif");                      //TextureImage6
 
+    // ----------------------- CARREGA TEXTURAS -----------------------
+
+    // ----------------------- CARREGA OBJETOS -----------------------
+
     ObjModel spheremodel("../../data/sphere.obj");
     ComputeNormals(&spheremodel);
     BuildTrianglesAndAddToVirtualScene(&spheremodel);
-    
+
     ObjModel scaremanmodel("../../data/scareman.obj");
     ComputeNormals(&scaremanmodel);
     BuildTrianglesAndAddToVirtualScene(&scaremanmodel);
@@ -353,17 +365,17 @@ int main(int argc, char *argv[])
     ObjModel planemodel("../../data/plane.obj");
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
-    
+
     ObjModel plane2model("../../data/plane.obj");
     ComputeNormals(&plane2model);
     BuildTrianglesAndAddToVirtualScene(&plane2model);
-    
+
     ObjModel plane3model("../../data/plane.obj");
     ComputeNormals(&plane3model);
     BuildTrianglesAndAddToVirtualScene(&plane3model);
 
-    // ----------------------- CARREGA TEXTURAS -----------------------
-    
+    // ----------------------- CARREGA OBJETOS -----------------------
+
     if (argc > 1)
     {
         ObjModel model(argv[1]);
@@ -420,7 +432,6 @@ int main(int argc, char *argv[])
         glm::vec4 camera_up_vector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
         // BLOCO DA CAMERA E PROJEÇÃO----------------
-        
         if (!playerView){
             float r = g_CameraDistance;
             float y = r * sin(g_CameraPhi)                      + player->position_world.y;
@@ -433,19 +444,14 @@ int main(int argc, char *argv[])
             camera_position_c = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
             camera_lookat_l = player->position_world; // Ponto "l", para onde a câmera (look-at) estará sempre olhando
             camera_view_vector =  camera_lookat_l - camera_position_c;
-
         }
         else{ // terceira pessoa
             camera_position_c  = player->position_world;
             camera_view_vector = (Matrix_Rotate_Y(g_CameraTheta)*Matrix_Rotate_X(-g_CameraPhi))*glm::vec4(0.0f,0.0f,-1.0f,0.0f);
-                    
-
         }
-
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
         glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
-
         // Agora computamos a matriz de Projeção.
         glm::mat4 projection;
 
@@ -454,11 +460,11 @@ int main(int argc, char *argv[])
         float nearplane = -0.1f;  // Posição do "near plane"
         float farplane = -100.0f; // Posição do "far plane"
 
-            // Projeção Perspectiva.
-            // Para definição do field of view (FOV), veja slides 205-215 do documento Aula_09_Projecoes.pdf.
-            float field_of_view = 3.141592 / 3.0f;
-            projection = Matrix_Perspective(field_of_view, g_ScreenRatio, nearplane, farplane);
-            glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
+        // Projeção Perspectiva.
+        // Para definição do field of view (FOV), veja slides 205-215 do documento Aula_09_Projecoes.pdf.
+        float field_of_view = 3.141592 / 3.0f;
+        projection = Matrix_Perspective(field_of_view, g_ScreenRatio, nearplane, farplane);
+        glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
 
 
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
@@ -467,24 +473,12 @@ int main(int argc, char *argv[])
         glUniformMatrix4fv(view_uniform, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
 
-        //fi
-
-        // ------------------ objetos da cena e menu ------------------
-
-
-        
-    
-
         if (menuJogo == 0)
         {
-            // plano do tamanho da janela.
-            
             model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
-
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE);
             DrawVirtualObject("plane");
-
             TextRendering_ShowFooterInfo(window);
 
             if (!gameIsRunning)
@@ -493,89 +487,55 @@ int main(int argc, char *argv[])
             }
         }
         else if (menuJogo == 2){
-            // plano do tamanho da janela.
-            
             model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
-
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE2);
             DrawVirtualObject("plane2");
         }
         else if (menuJogo == 3){
-            // plano do tamanho da janela.
-            
             model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
-
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE3);
             DrawVirtualObject("plane3");
         }
-        
+
         else{
-        
-            //carrega skybox
-            //carrega objetos fixos
-                //decoração cenrário
-                //obstaculos parados
-            //carrega que se movimentam
-                //carrega player
-                //carrega inimigos
-            
-            
-        //   MODELO DA SKYBOX (SPHERE)
-    
 
             model = Matrix_Translate(camera_position_c.x, camera_position_c.y, camera_position_c.z) * Matrix_Scale(farplane, farplane, farplane);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, SKY_BOX);
             DrawVirtualObject("sphere");
 
-            // OBJETOS FIXOS NA CENA
-
             // Desenhamos o player
-            model = Matrix_Translate(0.0f, 0.0f, 0.0f) * Matrix_Scale(1.0f, 1.0f, 1.0f);
-            //*Matrix_Rotate_Y(g_CameraTheta);
-            //*Matrix_Scale(1.0f,1.0f,1.0f);
+            model = Matrix_Translate(0.0f, -10.0f, 0.0f) * Matrix_Scale(0.6f, 0.6f, 0.6f)*Matrix_Rotate_Y(1.6);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLAYER);
             DrawVirtualObject("player");
-       
-        // ------------------ objetos da cena ------------------
 
-        // Imprimimos na tela informação sobre o número de quadros renderizados
-        // por segundo (frames per second).
-        TextRendering_ShowFramesPerSecond(window);
+            // ------------------ objetos da cena ------------------
 
-        if (gameIsRunning)
-        {
-            checkColision();
-            calcScore();
-            endGame();
+            // Imprimimos na tela informação sobre o número de quadros renderizados
+            // por segundo (frames per second).
+            TextRendering_ShowFramesPerSecond(window);
+
+            if (gameIsRunning)
+            {
+                checkColision();
+                calcScore();
+                endGame();
+            }
+
         }
-            
-        }
-        
-        // O framebuffer onde OpenGL executa as operações de renderização não
-        // é o mesmo que está sendo mostrado para o usuário, caso contrário
-        // seria possível ver artefatos conhecidos como "screen tearing". A
-        // chamada abaixo faz a troca dos buffers, mostrando para o usuário
-        // tudo que foi renderizado pelas funções acima.
-        // Veja o link: Veja o link: https://en.wikipedia.org/w/index.php?title=Multiple_buffering&oldid=793452829#Double_buffering_in_computer_graphics
-        glfwSwapBuffers(window);
 
-        // Verificamos com o sistema operacional se houve alguma interação do
-        // usuário (teclado, mouse, ...). Caso positivo, as funções de callback
-        // definidas anteriormente usando glfwSet*Callback() serão chamadas
-        // pela biblioteca GLFW.
+      glfwSwapBuffers(window);
+
         glfwPollEvents();
     }
     // Finalizamos o uso dos recursos do sistema operacional
     glfwTerminate();
 
-    // Fim do programa
     return 0;
 }
-
 // ------------------------------------  FINAL MAIN  ------------------------------------
 
 // ------------------------------------  FUNÇÕES DO JOGO  ------------------------------------
