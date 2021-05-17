@@ -229,10 +229,14 @@ bool g_MiddleMouseButtonPressed = false; // Análogo para botão do meio do mous
 float g_CameraTheta = 0.0f;    // Ângulo no plano ZX em relação ao eixo Z
 float g_CameraPhi = 0.0f;      // Ângulo em relação ao eixo Y
 float g_CameraDistance = 5.5f; // Distância da câmera para a origem
+float g_CamDistanceX = 1.5f;
+float g_CamDistanceY = 2.5f;
+float g_CamDistanceZ = 4.3f;
 
 // Variável que controla o tipo de projeção utilizada: perspectiva ou ortográfica.
 bool g_UsePerspectiveProjection = true;
 bool playerView = true; // camera em primeira pessoa
+float step = 1;
 
 // Variável que controla se o texto informativo será mostrado na tela.
 bool g_ShowInfoText = true;
@@ -428,19 +432,42 @@ int main(int argc, char *argv[])
         glm::vec4 camera_view_vector;                                   // = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
         glm::vec4 camera_up_vector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
+        float g_sin_camera_phi = sin(g_CameraPhi);
+        float g_cos_camera_phi = cos(g_CameraPhi);
+        float g_sin_camera_theta = sin(g_CameraTheta);
+        float g_cos_camera_theta = cos(g_CameraTheta);
+
+        float r = g_CameraDistance;
+        float y = r * g_sin_camera_phi;
+        float z = r * g_cos_camera_phi * g_cos_camera_theta;
+        float x = r * g_cos_camera_phi * g_sin_camera_theta;
+
         // BLOCO DA CAMERA E PROJEÇÃO----------------
         if (!playerView)
         {
-            float r = g_CameraDistance;
-            float y = r * sin(g_CameraPhi) + player->position_world.y;
-            float z = r * cos(g_CameraPhi) * cos(g_CameraTheta) + player->position_world.z;
-            float x = r * cos(g_CameraPhi) * sin(g_CameraTheta) + player->position_world.x;
+            if (gameIsRunning && g_CamDistanceY < 20)
+            {
+                g_CamDistanceY += (step * g_sin_camera_phi) + player->position_world.y;
+                g_CamDistanceZ += (step * g_cos_camera_phi * g_cos_camera_theta) + player->position_world.z;
+                g_CamDistanceX += (step * g_cos_camera_phi * g_sin_camera_theta) + player->position_world.x;
+            }
+            else if (!gameIsRunning)
+            {
+
+                g_CamDistanceY = (step * g_sin_camera_phi) + player->position_world.y;
+                g_CamDistanceZ = (step * g_cos_camera_phi * g_cos_camera_theta) + player->position_world.z;
+                g_CamDistanceX = (step * g_cos_camera_phi * g_sin_camera_theta) + player->position_world.x;
+            }
+            else if (g_CamDistanceY >= 20)
+            {
+                menuJogo = 2;
+            }
 
             // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
             // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
 
-            camera_position_c = glm::vec4(x, y, z, 1.0f); // Ponto "c", centro da câmera
-            camera_lookat_l = player->position_world;     // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+            camera_position_c = glm::vec4(g_CamDistanceX, g_CamDistanceY, g_CamDistanceZ, 1.0f); // Ponto "c", centro da câmera
+            camera_lookat_l = player->position_world;                                            // Ponto "l", para onde a câmera (look-at) estará sempre olhando
             camera_view_vector = camera_lookat_l - camera_position_c;
         }
         else
@@ -515,14 +542,14 @@ int main(int argc, char *argv[])
             // Imprimimos na tela informação sobre o número de quadros renderizados
             // por segundo (frames per second).
             TextRendering_ShowFramesPerSecond(window);
+        }
 
-            if (gameIsRunning)
-            {
-                movePlayer();
-                checkColision();
-                calcScore();
-                endGame();
-            }
+        if (gameIsRunning)
+        {
+            movePlayer();
+            checkColision();
+            calcScore();
+            endGame();
         }
 
         glfwSwapBuffers(window);
@@ -1528,6 +1555,8 @@ void PrintObjModelInfo(ObjModel *model)
     }
 }
 
+// ------------------------------------  FUNÇÕES DO JOGO  ------------------------------------
+
 void startGame()
 {
     menuJogo = 1;
@@ -1548,8 +1577,6 @@ void endGame()
 
 void movePlayer()
 {
-    float step = 0.05f;
-
     if (pressedS)
     {
         player->position_world.x -= step;
@@ -1559,6 +1586,9 @@ void movePlayer()
     {
         player->position_world.x += step;
     }
+
+    int delta = (int)getDeltaT();
+    step = (delta > 1 && delta % 5 == 0) ? 0.000005 : 1;
 }
 
 bool checkColision()
@@ -1583,8 +1613,6 @@ float getDeltaT()
 
     return seconds - old_seconds;
 }
-
-// ------------------------------------  FUNÇÕES DO JOGO  ------------------------------------
 
 // ------------------------------------       FINALMENTE O FIM        -----------------------------------
 // ------------------------------------  MEU DEUS QUE CÓDIGO ENORME  ------------------------------------
