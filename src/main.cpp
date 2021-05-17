@@ -257,18 +257,15 @@ glm::vec4 u;
 time_t t_inicio, t_agora, t_fim;
 double tempo;
 
-//Coordenadas para atualizar movimento
-int move_up=0;
-int move_down=0;
-int move_left=0;
-int move_right=0;
-float aceleration = 0.01;
+// variáveis colisão
+
+bool colidiu = false;
+int contColisao = 0;
 
 // Variável que controla o tipo de projeção utilizada: perspectiva ou ortográfica.
 bool g_UsePerspectiveProjection = true;
 bool playerView = true; // camera em primeira pessoa
 bool g_UseFreeCamera = false;
-
 
 // Variável que controla se o texto informativo será mostrado na tela.
 bool g_ShowInfoText = true;
@@ -446,6 +443,7 @@ int main(int argc, char *argv[])
     // Ficamos em loop, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
+        srand(time(NULL));
         // Aqui executamos as operações de renderização
         //           R     G     B     A
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -468,6 +466,7 @@ int main(int argc, char *argv[])
         glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
         glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
+
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
         glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
@@ -478,7 +477,7 @@ int main(int argc, char *argv[])
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.1f;  // Posição do "near plane"
-        float farplane = -100.0f; // Posição do "far plane"
+        float farplane = -500.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
         {
@@ -500,6 +499,7 @@ int main(int argc, char *argv[])
             float r = t*g_ScreenRatio;
             float l = -r;
             projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
+
         }
 
 
@@ -511,6 +511,7 @@ int main(int argc, char *argv[])
         glUniformMatrix4fv(view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
+        camera_up_vector = crossproduct(w,u);
         if (menuJogo == 0)
         {
             model = Matrix_Translate(0.0f, 0.0f, 0.0f) * Matrix_Scale(5.0f, 5.0f, 5.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
@@ -539,6 +540,17 @@ int main(int argc, char *argv[])
 
         else{
 
+          //  glm::vec4 camera_position_c  = glm::vec4(player->pos_x,player->pos_y,player->pos_z,1.0f); // Ponto "c", centro da câmera
+            //glm::vec4 camera_view_vector = glm::vec4(x, y, z, 0.0); // Vetor "view", sentido para onde a câmera está virada
+            // glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
+
+         /*  float cameraX = player->pos_x;
+          float  cameraY = player->pos_y;
+            float    cameraZ = player->pos_z;
+
+            camera_position_c = glm::vec4(cameraX,cameraY,cameraZ,1.0f );
+            glm::vec4 camera_view_vector (x,y,z,0.0f);*/
+
             //posição inicial  inimigos
             inimigo1->posX = 0.0f;
             inimigo1->posY = -9.0f;
@@ -557,12 +569,18 @@ int main(int argc, char *argv[])
 
 
             // Desenhamos o player
-            model = Matrix_Translate(player->pos_x,player->pos_y,player->pos_z)  * Matrix_Scale(0.6f, 0.6f, 0.6f)*Matrix_Rotate_Y(1.6);
+            model = Matrix_Translate(player->pos_x,player->pos_y,player->pos_z)  * Matrix_Scale(1.0f, 1.0f, 1.0f)*Matrix_Rotate_Y(1.6);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLAYER);
             DrawVirtualObject("player");
 
             // Desenhamos o modelo do coelho1
+            model = Matrix_Translate(inimigo1->posX,inimigo1->posY,inimigo1->posZ+6)
+                    * Matrix_Scale(2.0f, 2.0f, 2.0f);
+            glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(object_id_uniform, BUNNY);
+            DrawVirtualObject("bunny");
+
             model = Matrix_Translate(inimigo1->posX,inimigo1->posY,inimigo1->posZ)
                     * Matrix_Scale(2.0f, 2.0f, 2.0f);
             glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
@@ -574,6 +592,42 @@ int main(int argc, char *argv[])
 
             //depois que coloca os objetos fixos na tela, inicia o jogo -
             tempo = difftime(time(NULL), t_inicio);
+                float mDelay = t_inicio;
+                if (mDelay = 3.0f){
+                    player->pos_z =  player->pos_z - 1.0f;
+                   // printf( "%f", player->pos_z );
+                    player->pos_z;
+                    mDelay = 0;
+                    mDelay = tempo;
+
+
+                    if (trunc(player->pos_z) ==  inimigo1->posZ) {
+                        contColisao++;
+                        printf("\nCOLIDI %f e %f " ,player->pos_z,inimigo1->posZ  );
+                        printf("\nn colisoes %d " ,contColisao );
+
+
+                        if (contColisao >= 3){
+                            menuJogo = 3; // perdeu
+                        }
+                    }
+
+                    if (player->pos_z < farplane) {
+
+                        printf("acabou cenario");
+                        menuJogo = 2; // ganhou
+
+                    }
+                }
+           //printf("deu certo");
+
+
+                /* se player.z == inimigo.z = colidiu
+                    colidiu++
+                        se colidiu >3
+                            morreu
+                */
+
 
 
             // ------------------ objetos da cena ------------------
@@ -1336,12 +1390,12 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
 
         if (key == GLFW_KEY_S && action == GLFW_PRESS)
         {
-            player->pos_z =  player->pos_z - 10;
+            player->pos_x =  player->pos_x - 10;
         }
 
         if (key == GLFW_KEY_A && action == GLFW_PRESS)
         {
-            player->pos_z =  player->pos_z + 10;
+            player->pos_x =  player->pos_x + 10;
         }
     }
 }
@@ -1628,17 +1682,9 @@ void desenhaInimigo(glm::mat4 model){
 
 void movePlayer()
 {
-    float step = 10.05f;
+    player->pos_z =  player->pos_z + 10;
+   // glutTimerFunc(33,Timer, 1);
 
-    if (pressedS)
-    {
-        player->position_world.x -= step;
-    }
-
-    if (pressedA)
-    {
-        player->position_world.x += step;
-    }
 }
 
 bool checkColision()
@@ -1658,7 +1704,7 @@ int calcScore()
 
 float getDeltaT()
 {
-    static float old_seconds = (float)glfwGetTime();
+    float old_seconds = (float)glfwGetTime();
     float seconds = (float)glfwGetTime();
 
     return seconds - old_seconds;
