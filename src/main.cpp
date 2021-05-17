@@ -51,6 +51,9 @@
 #define SCAREMAN 3
 #define PLANE2 4
 #define PLANE3 5
+#define PLANE4 6
+#define BUNNY 7
+
 
 // ------------------------------------ ESTRUTURAS DO JOGO------------------------------------
 
@@ -105,12 +108,17 @@ struct ObjFixo
     glm::vec4 position_world; //Posição do objeto na cena
     glm::vec3 scale;          //Escala do objeto
     glm::vec3 rotation;       //Rotação do objeto na cena (x,y e z)
+    bool na_tela;
+    int velocidade;
+    float posX;
+    float posY;
+    float posZ;
 
-    ObjFixo()
-    {
+    ObjFixo(){
         position_world = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     }
 };
+
 
 struct Character
 {
@@ -123,19 +131,25 @@ struct Player
     int score;
     int lives;
     glm::vec4 position_world;
+    float pos_x;
+    float pos_y;
+    float pos_z;
     ObjModel *model;
 
-    Player()
-    {
+    Player(){
         score = 0;
         lives = 3;
-        position_world = glm::vec4(0.0f, 3.0f, 15.0f, 1.0f);
+        pos_x = 0.0f;
+        pos_y =-15.0f;
+        pos_z = -10.0f;
     }
 };
 
 //
 Player *player = new Player();
 ObjFixo *planeMenu = new ObjFixo();
+ObjFixo *inimigo1 = new ObjFixo();
+ObjFixo *inimigo2 = new ObjFixo();
 
 // ------------------------------------ ESTRUTURAS DO JOGO------------------------------------
 
@@ -194,6 +208,11 @@ void movePlayer();
 bool checkColision();
 int calcScore();
 float getDeltaT();
+void ajustaFreeCamera();
+glm::mat4 modelaInimigo(glm::mat4 model);
+void desenhaInimigo(glm::mat4 model);
+void desenha_inimigo2(glm::mat4 model);
+
 
 // ------------------------------------ VARIÁVEIS GLOBAIS ------------------------------------
 
@@ -228,11 +247,28 @@ bool g_MiddleMouseButtonPressed = false; // Análogo para botão do meio do mous
 // renderização.
 float g_CameraTheta = 0.0f;    // Ângulo no plano ZX em relação ao eixo Z
 float g_CameraPhi = 0.0f;      // Ângulo em relação ao eixo Y
-float g_CameraDistance = 5.5f; // Distância da câmera para a origem
+float g_CameraDistance = 6.0f; // Distância da câmera para a origem
+
+//Variáveis da free camera
+glm::vec4 w;
+glm::vec4 u;
+
+//controle do tempo
+time_t t_inicio, t_agora, t_fim;
+double tempo;
+
+//Coordenadas para atualizar movimento
+int move_up=0;
+int move_down=0;
+int move_left=0;
+int move_right=0;
+float aceleration = 0.01;
 
 // Variável que controla o tipo de projeção utilizada: perspectiva ou ortográfica.
 bool g_UsePerspectiveProjection = true;
 bool playerView = true; // camera em primeira pessoa
+bool g_UseFreeCamera = false;
+
 
 // Variável que controla se o texto informativo será mostrado na tela.
 bool g_ShowInfoText = true;
@@ -241,7 +277,8 @@ bool gameIsRunning = false;
 int menuJogo = 0; // 0: Menu - 1: jogo - 2: você ganhou - 3: você perdeu
 
 bool pressedA = false,
-     pressedS = false;
+        pressedS = false;
+
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 
@@ -342,8 +379,9 @@ int main(int argc, char *argv[])
     LoadTextureImage("../../data/menu_background.jpg");              //TextureImage2
     LoadTextureImage("../../data/skybox1.jpeg");                     //TextureImage3
     LoadTextureImage("../../data/THEFARM.png");                      //TextureImage4
-    LoadTextureImage("../../data/thefarm2.gif");                     //TextureImage5
-    LoadTextureImage("../../data/thefarm3.gif");                     //TextureImage6
+    LoadTextureImage("../../data/thefarm2.gif");                      //TextureImage5
+    LoadTextureImage("../../data/thefarm3.gif");                      //TextureImage6
+
 
     // ----------------------- CARREGA TEXTURAS -----------------------
 
@@ -352,6 +390,10 @@ int main(int argc, char *argv[])
     ObjModel spheremodel("../../data/sphere.obj");
     ComputeNormals(&spheremodel);
     BuildTrianglesAndAddToVirtualScene(&spheremodel);
+
+    ObjModel bunnymodel("../../data/bunny.obj");
+    ComputeNormals(&bunnymodel);
+    BuildTrianglesAndAddToVirtualScene(&bunnymodel);
 
     ObjModel scaremanmodel("../../data/scareman.obj");
     ComputeNormals(&scaremanmodel);
@@ -372,6 +414,10 @@ int main(int argc, char *argv[])
     ObjModel plane3model("../../data/plane.obj");
     ComputeNormals(&plane3model);
     BuildTrianglesAndAddToVirtualScene(&plane3model);
+
+    ObjModel plane4model("../../data/plane.obj");
+    ComputeNormals(&plane4model);
+    BuildTrianglesAndAddToVirtualScene(&plane4model);
 
     // ----------------------- CARREGA OBJETOS -----------------------
 
@@ -401,12 +447,6 @@ int main(int argc, char *argv[])
     while (!glfwWindowShouldClose(window))
     {
         // Aqui executamos as operações de renderização
-
-        // Definimos a cor do "fundo" do framebuffer como branco.  Tal cor é
-        // definida como coeficientes RGBA: Red, Green, Blue, Alpha; isto é:
-        // Vermelho, Verde, Azul, Alpha (valor de transparência).
-        // Conversaremos sobre sistemas de cores nas aulas de Modelos de Iluminação.
-        //
         //           R     G     B     A
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         // "Pintamos" todos os pixels do framebuffer com a cor definida acima,
@@ -416,41 +456,22 @@ int main(int argc, char *argv[])
         // os shaders de vértice e fragmentos).
         glUseProgram(program_id);
 
-        // Computamos a posição da câmera utilizando coordenadas esféricas.  As
-        // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
-        // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
-        // e ScrollCallback().
+        float r = g_CameraDistance;
+        float y = r*sin(g_CameraPhi);
+        float z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
+        float x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c;                                    // = glm::vec4(x, y, z, 1.0f);        // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l;                                      //  = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector;                                   // = g_UseFreeCamera ? glm::vec4(-x, -y, -z, 0.0) : camera_lookat_l - camera_position_c;
-        glm::vec4 camera_up_vector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
+        glm::vec4 camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
+        glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+        glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
-        // BLOCO DA CAMERA E PROJEÇÃO----------------
-        if (!playerView)
-        {
-            float r = g_CameraDistance;
-            float y = r * sin(g_CameraPhi) + player->position_world.y;
-            float z = r * cos(g_CameraPhi) * cos(g_CameraTheta) + player->position_world.z;
-            float x = r * cos(g_CameraPhi) * sin(g_CameraTheta) + player->position_world.x;
-
-            // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
-            // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-
-            camera_position_c = glm::vec4(x, y, z, 1.0f); // Ponto "c", centro da câmera
-            camera_lookat_l = player->position_world;     // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-            camera_view_vector = camera_lookat_l - camera_position_c;
-        }
-        else
-        { // terceira pessoa
-            camera_position_c = player->position_world;
-            camera_view_vector = (Matrix_Rotate_Y(g_CameraTheta) * Matrix_Rotate_X(-g_CameraPhi)) * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
-        }
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
         glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
+
         // Agora computamos a matriz de Projeção.
         glm::mat4 projection;
 
@@ -459,56 +480,101 @@ int main(int argc, char *argv[])
         float nearplane = -0.1f;  // Posição do "near plane"
         float farplane = -100.0f; // Posição do "far plane"
 
-        // Projeção Perspectiva.
-        // Para definição do field of view (FOV), veja slides 205-215 do documento Aula_09_Projecoes.pdf.
-        float field_of_view = 3.141592 / 3.0f;
-        projection = Matrix_Perspective(field_of_view, g_ScreenRatio, nearplane, farplane);
+        if (g_UsePerspectiveProjection)
+        {
+            // Projeção Perspectiva.
+            // Para definição do field of view (FOV), veja slides 205-215 do documento Aula_09_Projecoes.pdf.
+            float field_of_view = 3.141592 / 3.0f;
+            projection = Matrix_Perspective(field_of_view, g_ScreenRatio, nearplane, farplane);
+        }
+
+        else
+        {
+            // Projeção Ortográfica.
+            // Para definição dos valores l, r, b, t ("left", "right", "bottom", "top"),
+            // PARA PROJEÇÃO ORTOGRÁFICA veja slides 219-224 do documento Aula_09_Projecoes.pdf.
+            // Para simular um "zoom" ortográfico, computamos o valor de "t"
+            // utilizando a variável g_CameraDistance.
+            float t = 1.5f*g_CameraDistance/2.5f;
+            float b = -t;
+            float r = t*g_ScreenRatio;
+            float l = -r;
+            projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
+        }
+
+
         glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
 
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
         // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
         // efetivamente aplicadas em todos os pontos.
-        glUniformMatrix4fv(view_uniform, 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
+        glUniformMatrix4fv(projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
         if (menuJogo == 0)
         {
-            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
+            model = Matrix_Translate(0.0f, 0.0f, 0.0f) * Matrix_Scale(5.0f, 5.0f, 5.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE);
             DrawVirtualObject("plane");
-
             TextRendering_ShowFooterInfo(window);
-            TextRendering_ShowEnterGameMessage(window);
+
+            if (!gameIsRunning)
+            {
+                TextRendering_ShowEnterGameMessage(window);
+            }
         }
-        else if (menuJogo == 2)
-        {
-            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
+        else if (menuJogo == 2){
+            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(5.0f, 5.0f, 5.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE2);
             DrawVirtualObject("plane2");
         }
-        else if (menuJogo == 3)
-        {
-            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(12.0f, 12.0f, 12.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
+        else if (menuJogo == 3){
+            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(5.0f, 5.0f, 5.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE3);
             DrawVirtualObject("plane3");
         }
 
-        else
-        {
+        else{
+
+            //posição inicial  inimigos
+            inimigo1->posX = 0.0f;
+            inimigo1->posY = -9.0f;
+            inimigo1->posZ = -34.0f;
 
             model = Matrix_Translate(camera_position_c.x, camera_position_c.y, camera_position_c.z) * Matrix_Scale(farplane, farplane, farplane);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, SKY_BOX);
             DrawVirtualObject("sphere");
 
+            /* model = Matrix_Translate(-0.0f, -10.0f, 0.0f)
+                     * Matrix_Scale(500.0f, 500.0f, 500.0f);
+             glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+             glUniform1i(object_id_uniform, PLANE);
+             DrawVirtualObject("plane"); */
+
+
             // Desenhamos o player
-            model = Matrix_Translate(0.0f, -10.0f, 0.0f) * Matrix_Scale(0.6f, 0.6f, 0.6f) * Matrix_Rotate_Y(1.6);
+            model = Matrix_Translate(player->pos_x,player->pos_y,player->pos_z)  * Matrix_Scale(0.6f, 0.6f, 0.6f)*Matrix_Rotate_Y(1.6);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLAYER);
             DrawVirtualObject("player");
+
+            // Desenhamos o modelo do coelho1
+            model = Matrix_Translate(inimigo1->posX,inimigo1->posY,inimigo1->posZ)
+                    * Matrix_Scale(2.0f, 2.0f, 2.0f);
+            glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniform1i(object_id_uniform, BUNNY);
+            DrawVirtualObject("bunny");
+
+            model = modelaInimigo(model);
+            desenhaInimigo(model);
+
+            //depois que coloca os objetos fixos na tela, inicia o jogo -
+            tempo = difftime(time(NULL), t_inicio);
+
 
             // ------------------ objetos da cena ------------------
 
@@ -518,11 +584,12 @@ int main(int argc, char *argv[])
 
             if (gameIsRunning)
             {
-                movePlayer();
+                t_inicio = time(NULL);
                 checkColision();
                 calcScore();
                 endGame();
             }
+
         }
 
         glfwSwapBuffers(window);
@@ -612,10 +679,10 @@ void DrawVirtualObject(const char *object_name)
     // a documentação da função glDrawElements() em
     // http://docs.gl/gl3/glDrawElements.
     glDrawElements(
-        g_VirtualScene[object_name].rendering_mode,
-        g_VirtualScene[object_name].num_indices,
-        GL_UNSIGNED_INT,
-        (void *)(g_VirtualScene[object_name].first_index * sizeof(GLuint)));
+            g_VirtualScene[object_name].rendering_mode,
+            g_VirtualScene[object_name].num_indices,
+            GL_UNSIGNED_INT,
+            (void *)(g_VirtualScene[object_name].first_index * sizeof(GLuint)));
 
     // "Desligamos" o VAO, evitando assim que operações posteriores venham a
     // alterar o mesmo. Isso evita bugs.
@@ -1204,7 +1271,7 @@ void ScrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
     // Atualizamos a distância da câmera para a origem utilizando a
     // movimentação da "rodinha", simulando um ZOOM.
-    g_CameraDistance -= 0.5f * yoffset;
+    //g_CameraDistance -= 0.5f * yoffset;
 
     // Uma câmera look-at nunca pode estar exatamente "em cima" do ponto para
     // onde ela está olhando, pois isto gera problemas de divisão por zero na
@@ -1247,7 +1314,7 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
 
         if (key == GLFW_KEY_P && action == GLFW_PRESS)
         {
-            playerView = !playerView;
+            g_UsePerspectiveProjection = true;
         }
 
         if (key == GLFW_KEY_O && action == GLFW_PRESS)
@@ -1267,14 +1334,14 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
             fflush(stdout);
         }
 
-        if (key == GLFW_KEY_S)
+        if (key == GLFW_KEY_S && action == GLFW_PRESS)
         {
-            pressedS = pressed;
+            player->pos_z =  player->pos_z - 10;
         }
 
-        if (key == GLFW_KEY_A)
+        if (key == GLFW_KEY_A && action == GLFW_PRESS)
         {
-            pressedA = pressed;
+            player->pos_z =  player->pos_z + 10;
         }
     }
 }
@@ -1442,7 +1509,7 @@ void PrintObjModelInfo(ObjModel *model)
             for (size_t j = 0; j < shapes[i].mesh.tags[t].floatValues.size(); ++j)
             {
                 printf("%f", static_cast<const double>(
-                                 shapes[i].mesh.tags[t].floatValues[j]));
+                        shapes[i].mesh.tags[t].floatValues[j]));
                 if (j < (shapes[i].mesh.tags[t].floatValues.size() - 1))
                 {
                     printf(", ");
@@ -1516,9 +1583,9 @@ void PrintObjModelInfo(ObjModel *model)
         printf("  material.map_Ps = %s\n", materials[i].sheen_texname.c_str());
         printf("  material.norm   = %s\n", materials[i].normal_texname.c_str());
         std::map<std::string, std::string>::const_iterator it(
-            materials[i].unknown_parameter.begin());
+                materials[i].unknown_parameter.begin());
         std::map<std::string, std::string>::const_iterator itEnd(
-            materials[i].unknown_parameter.end());
+                materials[i].unknown_parameter.end());
 
         for (; it != itEnd; it++)
         {
@@ -1532,6 +1599,7 @@ void startGame()
 {
     menuJogo = 1;
     gameIsRunning = true;
+
 }
 
 void endGame()
@@ -1546,9 +1614,21 @@ void endGame()
     }
 }
 
+glm::mat4 modelaInimigo(glm::mat4 model)
+{
+    return model = Matrix_Translate(inimigo1->posX, inimigo1->posY ,inimigo1->posZ+15)
+                   * Matrix_Scale(2.0f, 2.0f, 2.0f);
+}
+
+void desenhaInimigo(glm::mat4 model){
+    glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+    glUniform1i(object_id_uniform, BUNNY);
+    DrawVirtualObject("bunny");
+}
+
 void movePlayer()
 {
-    float step = 0.05f;
+    float step = 10.05f;
 
     if (pressedS)
     {
@@ -1584,7 +1664,11 @@ float getDeltaT()
     return seconds - old_seconds;
 }
 
+void ajustaFreeCamera(){
+
+}
 // ------------------------------------  FUNÇÕES DO JOGO  ------------------------------------
+
 
 // ------------------------------------       FINALMENTE O FIM        -----------------------------------
 // ------------------------------------  MEU DEUS QUE CÓDIGO ENORME  ------------------------------------
