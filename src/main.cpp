@@ -53,6 +53,7 @@
 #define PLANE3 5
 #define PLANE4 6
 #define BUNNY 7
+#define BUNNY2 8
 
 // ------------------------------------ ESTRUTURAS DO JOGO------------------------------------
 
@@ -355,9 +356,9 @@ int main(int argc, char *argv[])
 
     // ----------------------- CARREGA TEXTURAS -----------------------
 
-    LoadTextureImage("../../data/texpleyer.jpeg");                   // TextureImage0
-    LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
-    LoadTextureImage("../../data/menu_background.jpg");              //TextureImage2
+    LoadTextureImage("../../data/coelho1.jpeg");                      // TextureImage0
+    LoadTextureImage("../../data/coleho2.jpeg");                     // TextureImage1
+    LoadTextureImage("../../data/red.jpeg");                         //TextureImage2
     LoadTextureImage("../../data/skybox1.jpeg");                     //TextureImage3
     LoadTextureImage("../../data/THEFARM.png");                      //TextureImage4
     LoadTextureImage("../../data/thefarm2.gif");                     //TextureImage5
@@ -374,6 +375,10 @@ int main(int argc, char *argv[])
     ObjModel bunnymodel("../../data/bunny.obj");
     ComputeNormals(&bunnymodel);
     BuildTrianglesAndAddToVirtualScene(&bunnymodel);
+
+    ObjModel bunny2model("../../data/bunny.obj");
+    ComputeNormals(&bunny2model);
+    BuildTrianglesAndAddToVirtualScene(&bunny2model);
 
     ObjModel scaremanmodel("../../data/scareman.obj");
     ComputeNormals(&scaremanmodel);
@@ -554,20 +559,46 @@ int main(int argc, char *argv[])
             glUniform1i(object_id_uniform, BUNNY);
             DrawVirtualObject("bunny");
 
+
             model = Matrix_Translate(inimigo1->posX - 10, inimigo1->posY, inimigo1->posZ - 15) * Matrix_Scale(2.0f, 2.0f, 2.0f);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-            glUniform1i(object_id_uniform, BUNNY);
-            DrawVirtualObject("bunny");
+            glUniform1i(object_id_uniform, BUNNY2);
+            DrawVirtualObject("bunny2");
 
-            model = Matrix_Translate(inimigo1->posX + 10, inimigo1->posY, inimigo1->posZ - 60) * Matrix_Scale(2.0f, 2.0f, 2.0f);
+            model = Matrix_Translate(inimigo1->posX-12, inimigo1->posY, inimigo1->posZ - 42) * Matrix_Scale(2.5f, 2.5f, 2.5f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, SCAREMAN);
+            DrawVirtualObject("scareman");
+
+            model = Matrix_Translate(inimigo1->posX - 10, inimigo1->posY, inimigo1->posZ - 60) * Matrix_Scale(2.0f, 2.0f, 2.0f);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, BUNNY);
             DrawVirtualObject("bunny");
 
-            model = Matrix_Translate(inimigo1->posX, inimigo1->posY, inimigo1->posZ - 80) * Matrix_Scale(2.0f, 2.0f, 2.0f);
+            model = Matrix_Translate(inimigo1->posX, inimigo1->posY, inimigo1->posZ - 80) * Matrix_Scale(2.5f, 2.5f, 2.5f);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, BUNNY);
             DrawVirtualObject("bunny");
+
+            model = Matrix_Translate(inimigo1->posX+7, inimigo1->posY, inimigo1->posZ - 42) * Matrix_Scale(1.5f, 1.5f, 1.5f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, SCAREMAN);
+            DrawVirtualObject("scareman");
+
+            model = Matrix_Translate(inimigo1->posX-12, inimigo1->posY, inimigo1->posZ - 42) * Matrix_Scale(1.5f, 1.5f, 1.5f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, SCAREMAN);
+            DrawVirtualObject("scareman");
+
+            model = Matrix_Translate(inimigo1->posX+12, inimigo1->posY, inimigo1->posZ - 92) * Matrix_Scale(1.5f, 1.5f, 1.5f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, SCAREMAN);
+            DrawVirtualObject("scareman");
+
+            model = Matrix_Translate(inimigo1->posX, inimigo1->posY, inimigo1->posZ - 100) * Matrix_Scale(3.0f, 3.0f, 3.0f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, SCAREMAN);
+            DrawVirtualObject("scareman");
 
             //depois que coloca os objetos fixos na tela, inicia o jogo -
             tempo = difftime(time(NULL), t_inicio);
