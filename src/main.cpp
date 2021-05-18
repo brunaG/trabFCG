@@ -175,6 +175,8 @@ void TextRendering_PrintMatrixVectorProductDivW(GLFWwindow *window, glm::mat4 M,
 // outras informações do programa. Definidas após main().
 void TextRendering_ShowFooterInfo(GLFWwindow *window);
 void TextRendering_ShowEnterGameMessage(GLFWwindow *window);
+void TextRendering_ShowWinMessage(GLFWwindow *window);
+void TextRendering_ShowLoseMessage(GLFWwindow *window);
 void TextRendering_ShowFramesPerSecond(GLFWwindow *window);
 
 // Funções callback para comunicação com o sistema operacional e interação do
@@ -356,13 +358,13 @@ int main(int argc, char *argv[])
 
     // ----------------------- CARREGA TEXTURAS -----------------------
 
-    LoadTextureImage("../../data/coelho1.jpeg");                      // TextureImage0
-    LoadTextureImage("../../data/coleho2.jpeg");                     // TextureImage1
-    LoadTextureImage("../../data/red.jpeg");                         //TextureImage2
-    LoadTextureImage("../../data/skybox1.jpeg");                     //TextureImage3
-    LoadTextureImage("../../data/THEFARM.png");                      //TextureImage4
-    LoadTextureImage("../../data/thefarm2.jpg");                     //TextureImage5
-    LoadTextureImage("../../data/thefarm3.jpg");                     //TextureImage6
+    LoadTextureImage("../../data/tc-earth_daymap_surface.jpg"); // TextureImage0
+    LoadTextureImage("../../data/coleho2.jpeg");                // TextureImage1
+    LoadTextureImage("../../data/red.jpeg");                    //TextureImage2
+    LoadTextureImage("../../data/skybox1.jpeg");                //TextureImage3
+    LoadTextureImage("../../data/THEFARM.png");                 //TextureImage4
+    LoadTextureImage("../../data/thefarm2.jpg");                //TextureImage5
+    LoadTextureImage("../../data/thefarm3.jpg");                //TextureImage6
 
     // ----------------------- CARREGA TEXTURAS -----------------------
 
@@ -511,17 +513,11 @@ int main(int argc, char *argv[])
         }
         else if (menuJogo == 2)
         {
-            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(5.0f, 5.0f, 5.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
-            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-            glUniform1i(object_id_uniform, PLANE2);
-            DrawVirtualObject("plane2");
+            TextRendering_ShowWinMessage(window);
         }
         else if (menuJogo == 3)
         {
-            model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(5.0f, 5.0f, 5.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
-            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
-            glUniform1i(object_id_uniform, PLANE3);
-            DrawVirtualObject("plane3");
+            TextRendering_ShowLoseMessage(window);
         }
 
         else
@@ -559,13 +555,12 @@ int main(int argc, char *argv[])
             glUniform1i(object_id_uniform, BUNNY);
             DrawVirtualObject("bunny");
 
-
             model = Matrix_Translate(inimigo1->posX - 10, inimigo1->posY, inimigo1->posZ - 15) * Matrix_Scale(2.0f, 2.0f, 2.0f);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, BUNNY2);
             DrawVirtualObject("bunny2");
 
-            model = Matrix_Translate(inimigo1->posX-12, inimigo1->posY, inimigo1->posZ - 42) * Matrix_Scale(2.5f, 2.5f, 2.5f);
+            model = Matrix_Translate(inimigo1->posX - 12, inimigo1->posY, inimigo1->posZ - 42) * Matrix_Scale(2.5f, 2.5f, 2.5f);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, SCAREMAN);
             DrawVirtualObject("scareman");
@@ -580,17 +575,17 @@ int main(int argc, char *argv[])
             glUniform1i(object_id_uniform, BUNNY);
             DrawVirtualObject("bunny");
 
-            model = Matrix_Translate(inimigo1->posX+7, inimigo1->posY, inimigo1->posZ - 42) * Matrix_Scale(1.5f, 1.5f, 1.5f);
+            model = Matrix_Translate(inimigo1->posX + 7, inimigo1->posY, inimigo1->posZ - 42) * Matrix_Scale(1.5f, 1.5f, 1.5f);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, SCAREMAN);
             DrawVirtualObject("scareman");
 
-            model = Matrix_Translate(inimigo1->posX-12, inimigo1->posY, inimigo1->posZ - 42) * Matrix_Scale(1.5f, 1.5f, 1.5f);
+            model = Matrix_Translate(inimigo1->posX - 12, inimigo1->posY, inimigo1->posZ - 42) * Matrix_Scale(1.5f, 1.5f, 1.5f);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, SCAREMAN);
             DrawVirtualObject("scareman");
 
-            model = Matrix_Translate(inimigo1->posX+12, inimigo1->posY, inimigo1->posZ - 92) * Matrix_Scale(1.5f, 1.5f, 1.5f);
+            model = Matrix_Translate(inimigo1->posX + 12, inimigo1->posY, inimigo1->posZ - 92) * Matrix_Scale(1.5f, 1.5f, 1.5f);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, SCAREMAN);
             DrawVirtualObject("scareman");
@@ -610,10 +605,7 @@ int main(int argc, char *argv[])
                 mDelay = 0;
                 mDelay = tempo;
 
-                if ((trunc(player->pos_z) == -34 && trunc(player->pos_x) == 0) 
-                    || (trunc(player->pos_z) == -49 && trunc(player->pos_x) == -10) 
-                    || (trunc(player->pos_z) == -94 && trunc(player->pos_x) == 10) 
-                    || (trunc(player->pos_z) == -114 && trunc(player->pos_x) == 0))
+                if ((trunc(player->pos_z) == -34 && trunc(player->pos_x) == 0) || (trunc(player->pos_z) == -49 && trunc(player->pos_x) == -10) || (trunc(player->pos_z) == -94 && trunc(player->pos_x) == 10) || (trunc(player->pos_z) == -114 && trunc(player->pos_x) == 0) || (trunc(player->pos_z) == -100 && trunc(player->pos_x) == 0))
                 {
                     contColisao++;
                     printf("\nCOLIDI %f e %f ", player->pos_z, inimigo1->posZ);
@@ -1428,6 +1420,20 @@ void TextRendering_ShowEnterGameMessage(GLFWwindow *window)
     float lineheight = TextRendering_LineHeight(window);
     float charwidth = TextRendering_CharWidth(window);
     TextRendering_PrintString(window, "PRESS ENTER TO PLAY", -10.0f * charwidth, 1.0f - lineheight, 1.0f);
+}
+
+void TextRendering_ShowWinMessage(GLFWwindow *window)
+{
+    float lineheight = TextRendering_LineHeight(window);
+    float charwidth = TextRendering_CharWidth(window);
+    TextRendering_PrintString(window, "YOU WIN :D", -10.0f * charwidth, 1.0f - lineheight, 1.0f);
+}
+
+void TextRendering_ShowLoseMessage(GLFWwindow *window)
+{
+    float lineheight = TextRendering_LineHeight(window);
+    float charwidth = TextRendering_CharWidth(window);
+    TextRendering_PrintString(window, "YOU LOSE :(", -10.0f * charwidth, 1.0f - lineheight, 1.0f);
 }
 
 // Escrevemos na tela o número de quadros renderizados por segundo (frames per
