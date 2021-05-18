@@ -54,7 +54,6 @@
 #define PLANE4 6
 #define BUNNY 7
 
-
 // ------------------------------------ ESTRUTURAS DO JOGO------------------------------------
 
 struct SceneObject
@@ -114,11 +113,11 @@ struct ObjFixo
     float posY;
     float posZ;
 
-    ObjFixo(){
+    ObjFixo()
+    {
         position_world = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     }
 };
-
 
 struct Character
 {
@@ -136,11 +135,12 @@ struct Player
     float pos_z;
     ObjModel *model;
 
-    Player(){
+    Player()
+    {
         score = 0;
         lives = 3;
         pos_x = 0.0f;
-        pos_y =-15.0f;
+        pos_y = -15.0f;
         pos_z = -10.0f;
     }
 };
@@ -213,7 +213,6 @@ glm::mat4 modelaInimigo(glm::mat4 model);
 void desenhaInimigo(glm::mat4 model);
 void desenha_inimigo2(glm::mat4 model);
 
-
 // ------------------------------------ VARIÁVEIS GLOBAIS ------------------------------------
 
 // A cena virtual é uma lista de objetos nomeados, guardados em um dicionário
@@ -274,8 +273,7 @@ bool gameIsRunning = false;
 int menuJogo = 0; // 0: Menu - 1: jogo - 2: você ganhou - 3: você perdeu
 
 bool pressedA = false,
-        pressedS = false;
-
+     pressedS = false;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 
@@ -376,9 +374,8 @@ int main(int argc, char *argv[])
     LoadTextureImage("../../data/menu_background.jpg");              //TextureImage2
     LoadTextureImage("../../data/skybox1.jpeg");                     //TextureImage3
     LoadTextureImage("../../data/THEFARM.png");                      //TextureImage4
-    LoadTextureImage("../../data/thefarm2.gif");                      //TextureImage5
-    LoadTextureImage("../../data/thefarm3.gif");                      //TextureImage6
-
+    LoadTextureImage("../../data/thefarm2.gif");                     //TextureImage5
+    LoadTextureImage("../../data/thefarm3.gif");                     //TextureImage6
 
     // ----------------------- CARREGA TEXTURAS -----------------------
 
@@ -455,17 +452,16 @@ int main(int argc, char *argv[])
         glUseProgram(program_id);
 
         float r = g_CameraDistance;
-        float y = r*sin(g_CameraPhi);
-        float z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-        float x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
+        float y = r * sin(g_CameraPhi);
+        float z = r * cos(g_CameraPhi) * cos(g_CameraTheta);
+        float x = r * cos(g_CameraPhi) * sin(g_CameraTheta);
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        glm::vec4 camera_position_c = glm::vec4(x, y, z, 1.0f);             // Ponto "c", centro da câmera
+        glm::vec4 camera_lookat_l = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);      // Ponto "l", para onde a câmera (look-at) estará sempre olhando
         glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
-
+        glm::vec4 camera_up_vector = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);     // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
@@ -494,24 +490,21 @@ int main(int argc, char *argv[])
             // PARA PROJEÇÃO ORTOGRÁFICA veja slides 219-224 do documento Aula_09_Projecoes.pdf.
             // Para simular um "zoom" ortográfico, computamos o valor de "t"
             // utilizando a variável g_CameraDistance.
-            float t = 1.5f*g_CameraDistance/2.5f;
+            float t = 1.5f * g_CameraDistance / 2.5f;
             float b = -t;
-            float r = t*g_ScreenRatio;
+            float r = t * g_ScreenRatio;
             float l = -r;
             projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
-
         }
-
 
         glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
 
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
         // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
         // efetivamente aplicadas em todos os pontos.
-        glUniformMatrix4fv(view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
-        glUniformMatrix4fv(projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
+        glUniformMatrix4fv(view_uniform, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projection_uniform, 1, GL_FALSE, glm::value_ptr(projection));
 
-        camera_up_vector = crossproduct(w,u);
         if (menuJogo == 0)
         {
             model = Matrix_Translate(0.0f, 0.0f, 0.0f) * Matrix_Scale(5.0f, 5.0f, 5.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
@@ -525,31 +518,34 @@ int main(int argc, char *argv[])
                 TextRendering_ShowEnterGameMessage(window);
             }
         }
-        else if (menuJogo == 2){
+        else if (menuJogo == 2)
+        {
             model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(5.0f, 5.0f, 5.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE2);
             DrawVirtualObject("plane2");
         }
-        else if (menuJogo == 3){
+        else if (menuJogo == 3)
+        {
             model = Matrix_Translate(0.0f, 3.0f, 0.0f) * Matrix_Scale(5.0f, 5.0f, 5.0f) * Matrix_Rotate_X(1.6) * Matrix_Rotate_Z(0.0);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLANE3);
             DrawVirtualObject("plane3");
         }
 
-        else{
+        else
+        {
 
-          //  glm::vec4 camera_position_c  = glm::vec4(player->pos_x,player->pos_y,player->pos_z,1.0f); // Ponto "c", centro da câmera
-            //glm::vec4 camera_view_vector = glm::vec4(x, y, z, 0.0); // Vetor "view", sentido para onde a câmera está virada
+            // glm::vec4 camera_position_c  = glm::vec4(player->pos_x,player->pos_y,player->pos_z,1.0f); // Ponto "c", centro da câmera
+            // glm::vec4 camera_view_vector = glm::vec4(x, y, z, 0.0); // Vetor "view", sentido para onde a câmera está virada
             // glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
-         /*  float cameraX = player->pos_x;
-          float  cameraY = player->pos_y;
-            float    cameraZ = player->pos_z;
+            // float cameraX = player->pos_x;
+            // float  cameraY = player->pos_y;
+            // float    cameraZ = player->pos_z;
 
-            camera_position_c = glm::vec4(cameraX,cameraY,cameraZ,1.0f );
-            glm::vec4 camera_view_vector (x,y,z,0.0f);*/
+            // camera_position_c = glm::vec4(cameraX,cameraY,cameraZ,1.0f );
+            // glm::vec4 camera_view_vector (x,y,z,0.0f);
 
             //posição inicial  inimigos
             inimigo1->posX = 0.0f;
@@ -567,68 +563,62 @@ int main(int argc, char *argv[])
              glUniform1i(object_id_uniform, PLANE);
              DrawVirtualObject("plane"); */
 
-
             // Desenhamos o player
-            model = Matrix_Translate(player->pos_x,player->pos_y,player->pos_z)  * Matrix_Scale(1.0f, 1.0f, 1.0f)*Matrix_Rotate_Y(1.6);
+            model = Matrix_Translate(player->pos_x, player->pos_y, player->pos_z) * Matrix_Scale(1.0f, 1.0f, 1.0f) * Matrix_Rotate_Y(1.6);
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, PLAYER);
             DrawVirtualObject("player");
 
             // Desenhamos o modelo do coelho1
-            model = Matrix_Translate(inimigo1->posX,inimigo1->posY,inimigo1->posZ+6)
-                    * Matrix_Scale(2.0f, 2.0f, 2.0f);
-            glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            model = Matrix_Translate(inimigo1->posX, inimigo1->posY, inimigo1->posZ) * Matrix_Scale(2.0f, 2.0f, 2.0f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, BUNNY);
             DrawVirtualObject("bunny");
 
-            model = Matrix_Translate(inimigo1->posX,inimigo1->posY,inimigo1->posZ)
-                    * Matrix_Scale(2.0f, 2.0f, 2.0f);
-            glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            model = Matrix_Translate(inimigo1->posX - 10, inimigo1->posY, inimigo1->posZ - 15) * Matrix_Scale(2.0f, 2.0f, 2.0f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, BUNNY);
             DrawVirtualObject("bunny");
 
-            model = modelaInimigo(model);
-            desenhaInimigo(model);
+            model = Matrix_Translate(inimigo1->posX + 10, inimigo1->posY, inimigo1->posZ - 60) * Matrix_Scale(2.0f, 2.0f, 2.0f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, BUNNY);
+            DrawVirtualObject("bunny");
+
+            model = Matrix_Translate(inimigo1->posX, inimigo1->posY, inimigo1->posZ - 80) * Matrix_Scale(2.0f, 2.0f, 2.0f);
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform1i(object_id_uniform, BUNNY);
+            DrawVirtualObject("bunny");
 
             //depois que coloca os objetos fixos na tela, inicia o jogo -
             tempo = difftime(time(NULL), t_inicio);
-                float mDelay = t_inicio;
-                if (mDelay = 3.0f){
-                    player->pos_z =  player->pos_z - 1.0f;
-                   // printf( "%f", player->pos_z );
-                    player->pos_z;
-                    mDelay = 0;
-                    mDelay = tempo;
+            float mDelay = t_inicio;
+            if (mDelay = 3.0f)
+            {
+                player->pos_z = player->pos_z - 1.0f;
+                player->pos_z;
+                mDelay = 0;
+                mDelay = tempo;
 
+                if (trunc(player->pos_z) == inimigo1->posZ)
+                {
+                    contColisao++;
+                    printf("\nCOLIDI %f e %f ", player->pos_z, inimigo1->posZ);
+                    printf("\nn colisoes %d ", contColisao);
 
-                    if (trunc(player->pos_z) ==  inimigo1->posZ) {
-                        contColisao++;
-                        printf("\nCOLIDI %f e %f " ,player->pos_z,inimigo1->posZ  );
-                        printf("\nn colisoes %d " ,contColisao );
-
-
-                        if (contColisao >= 3){
-                            menuJogo = 3; // perdeu
-                        }
-                    }
-
-                    if (player->pos_z < farplane) {
-
-                        printf("acabou cenario");
-                        menuJogo = 2; // ganhou
-
+                    if (contColisao >= 3)
+                    {
+                        menuJogo = 3;
                     }
                 }
-           //printf("deu certo");
 
+                if (player->pos_z < farplane)
+                {
 
-                /* se player.z == inimigo.z = colidiu
-                    colidiu++
-                        se colidiu >3
-                            morreu
-                */
-
-
+                    printf("acabou cenario");
+                    menuJogo = 2;
+                }
+            }
 
             // ------------------ objetos da cena ------------------
 
@@ -643,7 +633,6 @@ int main(int argc, char *argv[])
                 calcScore();
                 endGame();
             }
-
         }
 
         glfwSwapBuffers(window);
@@ -733,10 +722,10 @@ void DrawVirtualObject(const char *object_name)
     // a documentação da função glDrawElements() em
     // http://docs.gl/gl3/glDrawElements.
     glDrawElements(
-            g_VirtualScene[object_name].rendering_mode,
-            g_VirtualScene[object_name].num_indices,
-            GL_UNSIGNED_INT,
-            (void *)(g_VirtualScene[object_name].first_index * sizeof(GLuint)));
+        g_VirtualScene[object_name].rendering_mode,
+        g_VirtualScene[object_name].num_indices,
+        GL_UNSIGNED_INT,
+        (void *)(g_VirtualScene[object_name].first_index * sizeof(GLuint)));
 
     // "Desligamos" o VAO, evitando assim que operações posteriores venham a
     // alterar o mesmo. Isso evita bugs.
@@ -1390,12 +1379,12 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mod)
 
         if (key == GLFW_KEY_S && action == GLFW_PRESS)
         {
-            player->pos_x =  player->pos_x - 10;
+            player->pos_x = player->pos_x - 10;
         }
 
         if (key == GLFW_KEY_A && action == GLFW_PRESS)
         {
-            player->pos_x =  player->pos_x + 10;
+            player->pos_x = player->pos_x + 10;
         }
     }
 }
@@ -1563,7 +1552,7 @@ void PrintObjModelInfo(ObjModel *model)
             for (size_t j = 0; j < shapes[i].mesh.tags[t].floatValues.size(); ++j)
             {
                 printf("%f", static_cast<const double>(
-                        shapes[i].mesh.tags[t].floatValues[j]));
+                                 shapes[i].mesh.tags[t].floatValues[j]));
                 if (j < (shapes[i].mesh.tags[t].floatValues.size() - 1))
                 {
                     printf(", ");
@@ -1637,9 +1626,9 @@ void PrintObjModelInfo(ObjModel *model)
         printf("  material.map_Ps = %s\n", materials[i].sheen_texname.c_str());
         printf("  material.norm   = %s\n", materials[i].normal_texname.c_str());
         std::map<std::string, std::string>::const_iterator it(
-                materials[i].unknown_parameter.begin());
+            materials[i].unknown_parameter.begin());
         std::map<std::string, std::string>::const_iterator itEnd(
-                materials[i].unknown_parameter.end());
+            materials[i].unknown_parameter.end());
 
         for (; it != itEnd; it++)
         {
@@ -1653,7 +1642,6 @@ void startGame()
 {
     menuJogo = 1;
     gameIsRunning = true;
-
 }
 
 void endGame()
@@ -1670,21 +1658,20 @@ void endGame()
 
 glm::mat4 modelaInimigo(glm::mat4 model)
 {
-    return model = Matrix_Translate(inimigo1->posX, inimigo1->posY ,inimigo1->posZ+15)
-                   * Matrix_Scale(2.0f, 2.0f, 2.0f);
+    return model = Matrix_Translate(inimigo1->posX, inimigo1->posY, inimigo1->posZ + 15) * Matrix_Scale(2.0f, 2.0f, 2.0f);
 }
 
-void desenhaInimigo(glm::mat4 model){
-    glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+void desenhaInimigo(glm::mat4 model)
+{
+    glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
     glUniform1i(object_id_uniform, BUNNY);
     DrawVirtualObject("bunny");
 }
 
 void movePlayer()
 {
-    player->pos_z =  player->pos_z + 10;
-   // glutTimerFunc(33,Timer, 1);
-
+    player->pos_z = player->pos_z + 10;
+    // glutTimerFunc(33,Timer, 1);
 }
 
 bool checkColision()
@@ -1710,11 +1697,10 @@ float getDeltaT()
     return seconds - old_seconds;
 }
 
-void ajustaFreeCamera(){
-
+void ajustaFreeCamera()
+{
 }
 // ------------------------------------  FUNÇÕES DO JOGO  ------------------------------------
-
 
 // ------------------------------------       FINALMENTE O FIM        -----------------------------------
 // ------------------------------------  MEU DEUS QUE CÓDIGO ENORME  ------------------------------------
