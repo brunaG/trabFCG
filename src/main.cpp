@@ -93,13 +93,6 @@ struct ObjModel
     }
 };
 
-struct Position
-{
-    int x;
-    int y;
-    int z;
-};
-
 struct ObjFixo
 {
     int id;                   //ID do objeto
@@ -117,12 +110,6 @@ struct ObjFixo
     {
         position_world = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     }
-};
-
-struct Character
-{
-    Position position;
-    ObjModel *model;
 };
 
 struct Player
@@ -253,9 +240,8 @@ glm::vec4 w;
 glm::vec4 u;
 
 //controle do tempo
-time_t t_inicio, t_agora, t_fim;
+time_t t_inicio;
 double tempo;
-
 // variáveis colisão
 
 bool colidiu = false;
@@ -535,7 +521,6 @@ int main(int argc, char *argv[])
 
         else
         {
-
             // glm::vec4 camera_position_c  = glm::vec4(player->pos_x,player->pos_y,player->pos_z,1.0f); // Ponto "c", centro da câmera
             // glm::vec4 camera_view_vector = glm::vec4(x, y, z, 0.0); // Vetor "view", sentido para onde a câmera está virada
             // glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
@@ -556,12 +541,6 @@ int main(int argc, char *argv[])
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
             glUniform1i(object_id_uniform, SKY_BOX);
             DrawVirtualObject("sphere");
-
-            /* model = Matrix_Translate(-0.0f, -10.0f, 0.0f)
-                     * Matrix_Scale(500.0f, 500.0f, 500.0f);
-             glUniformMatrix4fv(model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-             glUniform1i(object_id_uniform, PLANE);
-             DrawVirtualObject("plane"); */
 
             // Desenhamos o player
             model = Matrix_Translate(player->pos_x, player->pos_y, player->pos_z) * Matrix_Scale(1.0f, 1.0f, 1.0f) * Matrix_Rotate_Y(1.6);
@@ -600,7 +579,10 @@ int main(int argc, char *argv[])
                 mDelay = 0;
                 mDelay = tempo;
 
-                if (trunc(player->pos_z) == inimigo1->posZ)
+                if ((trunc(player->pos_z) == -34 && trunc(player->pos_x) == 0) 
+                    || (trunc(player->pos_z) == -49 && trunc(player->pos_x) == -10) 
+                    || (trunc(player->pos_z) == -94 && trunc(player->pos_x) == 10) 
+                    || (trunc(player->pos_z) == -114 && trunc(player->pos_x) == 0))
                 {
                     contColisao++;
                     printf("\nCOLIDI %f e %f ", player->pos_z, inimigo1->posZ);
@@ -614,7 +596,6 @@ int main(int argc, char *argv[])
 
                 if (player->pos_z < farplane)
                 {
-
                     printf("acabou cenario");
                     menuJogo = 2;
                 }
