@@ -361,8 +361,8 @@ int main(int argc, char *argv[])
     LoadTextureImage("../../data/red.jpeg");                         //TextureImage2
     LoadTextureImage("../../data/skybox1.jpeg");                     //TextureImage3
     LoadTextureImage("../../data/THEFARM.png");                      //TextureImage4
-    LoadTextureImage("../../data/thefarm2.gif");                     //TextureImage5
-    LoadTextureImage("../../data/thefarm3.gif");                     //TextureImage6
+    LoadTextureImage("../../data/thefarm2.jpg");                     //TextureImage5
+    LoadTextureImage("../../data/thefarm3.jpg");                     //TextureImage6
 
     // ----------------------- CARREGA TEXTURAS -----------------------
 
